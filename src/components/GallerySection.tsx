@@ -94,6 +94,7 @@ export default function GallerySection() {
           >
             <img
               src={art.thumbUrl}
+              onError={(e) => { if (art.youtubeId) e.currentTarget.src = `https://i.ytimg.com/vi/${art.youtubeId}/hqdefault.jpg`; }}
               alt={art.title || art.subTag}
               loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -195,3 +196,4 @@ export default function GallerySection() {
     </section>
   );
 }
+

@@ -135,8 +135,9 @@ export const ARTWORKS: ArtworkItem[] = Object.entries(typedData.portfolio || {})
 
     return items.map((item, idx) => {
       const fullUrl = normalizePath(item.src);
-      const thumbUrl = normalizePath(item.thumbnailPath) || fullUrl;
       const ytId = item.youtubeId || extractYoutubeId(item.src) || extractYoutubeId(item.youtubeUrl);
+      const ytThumb = ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : '';
+      const thumbUrl = normalizePath(item.thumbnailPath) || ytThumb || fullUrl;
 
       return {
         id: `${key}-${idx}`,
@@ -187,3 +188,5 @@ export const CATEGORIES: { id: CategoryId; label: string; subTags: string[] }[] 
     subTags: Array.from(new Set(ARTWORKS.filter((a) => a.category === 'design').map((a) => a.subTag))),
   },
 ];
+
+
