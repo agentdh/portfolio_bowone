@@ -94,7 +94,7 @@ export default function GallerySection() {
           >
             <img
               src={art.thumbUrl}
-              alt={art.title}
+              alt={art.title || art.subTag}
               loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
@@ -112,11 +112,6 @@ export default function GallerySection() {
                 </div>
               </div>
             )}
-
-            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-              <h3 className="text-sm font-bold text-white truncate">{art.title}</h3>
-              {art.desc && <p className="text-xs text-slate-300 truncate mt-0.5">{art.desc}</p>}
-            </div>
           </div>
         ))}
       </div>
@@ -158,7 +153,7 @@ export default function GallerySection() {
                   <iframe
                     className="w-full h-full"
                     src={`https://www.youtube.com/embed/${activeArtwork.youtubeId}`}
-                    title={activeArtwork.title}
+                    title={activeArtwork.title || activeArtwork.subTag}
                     allowFullScreen
                   />
                 </div>
@@ -170,7 +165,7 @@ export default function GallerySection() {
                 <div className="max-h-[75vh] overflow-auto bg-black/50 flex justify-center">
                   <img
                     src={activeArtwork.fullUrl}
-                    alt={activeArtwork.title}
+                    alt={activeArtwork.title || activeArtwork.subTag}
                     className="max-h-[75vh] w-auto object-contain"
                   />
                 </div>
@@ -178,7 +173,9 @@ export default function GallerySection() {
 
               <div className="p-6 border-t border-white/10">
                 <span className="text-xs font-semibold text-cyan-400">{activeArtwork.subTag}</span>
-                <h3 className="text-xl font-bold text-white mt-1">{activeArtwork.title}</h3>
+                {activeArtwork.title && (
+                  <h3 className="text-xl font-bold text-white mt-1">{activeArtwork.title}</h3>
+                )}
                 {activeArtwork.desc && (
                   <p className="text-sm text-slate-300 mt-2 leading-relaxed">{activeArtwork.desc}</p>
                 )}
