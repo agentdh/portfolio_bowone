@@ -112,6 +112,14 @@ export default function GallerySection() {
                 </div>
               </div>
             )}
+
+            {/* portfolio.json에서 "showTitle": true 로 설정한 작품만 하단 텍스트 노출 */}
+            {art.showTitle && art.title && (
+              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/90 via-black/45 to-transparent">
+                <h3 className="text-sm font-bold text-white truncate">{art.title}</h3>
+                {art.desc && <p className="text-xs text-slate-300 truncate mt-0.5">{art.desc}</p>}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -173,7 +181,7 @@ export default function GallerySection() {
 
               <div className="p-6 border-t border-white/10">
                 <span className="text-xs font-semibold text-cyan-400">{activeArtwork.subTag}</span>
-                {activeArtwork.title && (
+                {activeArtwork.showTitle && activeArtwork.title && (
                   <h3 className="text-xl font-bold text-white mt-1">{activeArtwork.title}</h3>
                 )}
                 {activeArtwork.desc && (

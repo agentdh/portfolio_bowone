@@ -25,6 +25,7 @@
       {
         "title": "2026 08 28",
         "desc": "",
+        "showTitle": false,
         "src": "./thumbnail/2026 08 28.jpg",
         "type": "image",
         "thumbnailPath": "thumbnail/card-thumbs/2026 08 28.webp",

@@ -6,6 +6,7 @@ export interface ArtworkItem {
   id: string;
   title: string;
   desc: string;
+  showTitle: boolean;
   category: Exclude<CategoryId, 'all'>;
   subTag: string;
   thumbUrl: string;
@@ -17,6 +18,7 @@ export interface ArtworkItem {
 interface RawPortfolioEntry {
   title?: string;
   desc?: string;
+  showTitle?: boolean;
   src?: string;
   thumbnailPath?: string;
   type?: string;
@@ -126,16 +128,6 @@ const extractYoutubeId = (url?: string) => {
   return match ? match[1] : undefined;
 };
 
-// 단순 숫자, '무제...', '썸네일...', 날짜형식 등 파일명성 문자열 필터링
-const cleanTitle = (rawTitle?: string) => {
-  if (!rawTitle) return '';
-  const t = rawTitle.trim();
-  if (/^(무제|썸네일|제목\s*없음|image|img|untitled)/i.test(t)) return '';
-  if (/^[\d\s\-_().,]+$/.test(t)) return '';
-  if (/^\d{4}[\s.-]\d{2}[\s.-]\d{2}/.test(t)) return '';
-  return t;
-};
-
 export const ARTWORKS: ArtworkItem[] = Object.entries(typedData.portfolio || {}).flatMap(
   ([key, items]) => {
     const mapped = KEY_MAP[key] || { category: 'design', subTag: key };
@@ -148,8 +140,9 @@ export const ARTWORKS: ArtworkItem[] = Object.entries(typedData.portfolio || {})
 
       return {
         id: `${key}-${idx}`,
-        title: cleanTitle(item.title),
+        title: item.title?.trim() || '',
         desc: item.desc?.trim() || '',
+        showTitle: Boolean(item.showTitle),
         category: mapped.category,
         subTag: mapped.subTag,
         thumbUrl,
