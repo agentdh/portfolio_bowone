@@ -1,69 +1,58 @@
 ﻿'use client';
 
-import { motion } from 'framer-motion';
-import { ARTIST_PROFILE, ARTWORKS } from '@/data/portfolio';
-import { ExternalLink, Sparkles, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
+import { ARTIST_PROFILE, ARTWORKS } from '@/data/portfolio';
+import { Copy, Check, ExternalLink } from 'lucide-react';
 
 export default function HeroSection() {
   const [copied, setCopied] = useState(false);
 
+  // 실제 존재하는 첫 번째 일러스트와 3D 작업물을 자동으로 대표 이미지로 사용
   const featuredIllust =
-    ARTWORKS.find((a) => a.category === 'illust')?.thumbUrl || ARTIST_PROFILE.profileImg;
+    ARTWORKS.find((a) => a.category === 'illust' && a.thumbUrl)?.thumbUrl || ARTIST_PROFILE.profileImg;
   const featured3D =
-    ARTWORKS.find((a) => a.category === '3d' || a.category === 'live2d')?.thumbUrl ||
-    ARTIST_PROFILE.profileImg;
+    ARTWORKS.find((a) => a.category === '3d' && a.thumbUrl)?.thumbUrl || ARTIST_PROFILE.profileImg;
 
-  const copyEmail = () => {
+  const handleCopyEmail = () => {
     navigator.clipboard.writeText(ARTIST_PROFILE.email);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <section className="relative overflow-hidden pt-28 pb-20 px-6 max-w-7xl mx-auto">
-      <div className="pointer-events-none absolute top-10 left-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px]" />
-      <div className="pointer-events-none absolute top-20 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px]" />
-
+    <section className="relative pt-28 pb-16 px-6 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="hidden lg:block lg:col-span-3"
-        >
-          <div className="relative rounded-2xl p-[1px] bg-gradient-to-b from-cyan-400/60 to-purple-500/20 shadow-[0_0_30px_rgba(34,211,238,0.15)]">
-            <div className="aspect-[3/4] rounded-2xl bg-[#131722] overflow-hidden relative">
-              <img
-                src={featuredIllust}
-                alt="대표 일러스트"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              />
-              <span className="absolute bottom-3 left-3 text-xs font-medium px-2.5 py-1 rounded-full bg-black/70 text-cyan-300 border border-cyan-500/30">
-                2D ILLUST
-              </span>
-            </div>
+        {/* 좌측 대표 아트워크 */}
+        <div className="lg:col-span-3 hidden lg:block">
+          <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 bg-[#191B20]">
+            <img
+              src={featuredIllust}
+              alt="Featured Illustration"
+              className="w-full h-full object-cover opacity-90 hover:opacity-100 transition duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#121316] via-transparent to-transparent" />
+            <span className="absolute bottom-3 left-3 text-[11px] font-medium tracking-wider text-zinc-300 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded">
+              2D ILLUST
+            </span>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-6 text-center space-y-6"
-        >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-semibold tracking-wider uppercase">
-            <Sparkles className="w-3.5 h-3.5" />
-            {ARTIST_PROFILE.tagline}
+        {/* 중앙 프로필 & 액션 */}
+        <div className="lg:col-span-6 text-center space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-zinc-300 text-xs font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span>{ARTIST_PROFILE.tagline}</span>
           </div>
 
-          <h1 className="text-6xl sm:text-7xl font-black tracking-tight bg-gradient-to-r from-cyan-300 via-sky-400 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(56,189,248,0.3)]">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
             {ARTIST_PROFILE.brand}
           </h1>
 
-          <p className="text-lg sm:text-xl font-medium text-slate-300 tracking-wide">
+          <p className="text-sm font-medium tracking-wide text-zinc-400">
             {ARTIST_PROFILE.roles.join(' · ')}
           </p>
 
-          <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-xl mx-auto whitespace-pre-line">
+          <p className="text-zinc-300 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
             {ARTIST_PROFILE.bio}
           </p>
 
@@ -72,54 +61,50 @@ export default function HeroSection() {
               href={ARTIST_PROFILE.discordUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-[0_0_25px_rgba(168,85,247,0.4)] hover:opacity-90 transition"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-zinc-100 hover:bg-white text-zinc-950 transition"
             >
-              Discord 의뢰하러 가기
+              <span>Discord 의뢰하기</span>
               <ExternalLink className="w-4 h-4" />
             </a>
 
             <button
-              onClick={copyEmail}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition"
+              onClick={handleCopyEmail}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#191B20] hover:bg-white/10 text-zinc-200 border border-white/10 transition"
             >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
-              {copied ? '이메일 복사 완료!' : ARTIST_PROFILE.email}
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-zinc-400" />}
+              <span>{copied ? '이메일 복사됨' : ARTIST_PROFILE.email}</span>
             </button>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2 pt-4">
-            {ARTIST_PROFILE.socials.map((social) => (
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-3">
+            {ARTIST_PROFILE.socials.map((soc) => (
               <a
-                key={social.name}
-                href={social.url}
+                key={soc.name}
+                href={soc.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#131722] text-slate-400 hover:text-cyan-300 border border-white/5 hover:border-cyan-400/40 transition"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-100 border border-white/[0.07] transition"
               >
-                {social.name}
+                {soc.name}
               </a>
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="hidden lg:block lg:col-span-3"
-        >
-          <div className="relative rounded-2xl p-[1px] bg-gradient-to-b from-purple-400/60 to-cyan-500/20 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-            <div className="aspect-[3/4] rounded-2xl bg-[#131722] overflow-hidden relative">
-              <img
-                src={featured3D}
-                alt="대표 3D 모델링"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              />
-              <span className="absolute bottom-3 right-3 text-xs font-medium px-2.5 py-1 rounded-full bg-black/70 text-purple-300 border border-purple-500/30">
-                3D & LIVE2D
-              </span>
-            </div>
+        {/* 우측 대표 3D/Live2D */}
+        <div className="lg:col-span-3 hidden lg:block">
+          <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 bg-[#191B20]">
+            <img
+              src={featured3D}
+              alt="Featured 3D Work"
+              className="w-full h-full object-cover opacity-90 hover:opacity-100 transition duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#121316] via-transparent to-transparent" />
+            <span className="absolute bottom-3 left-3 text-[11px] font-medium tracking-wider text-zinc-300 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded">
+              3D & LIVE2D
+            </span>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

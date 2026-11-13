@@ -188,5 +188,3 @@ export const CATEGORIES: { id: CategoryId; label: string; subTags: string[] }[] 
     subTags: Array.from(new Set(ARTWORKS.filter((a) => a.category === 'design').map((a) => a.subTag))),
   },
 ];
-
-

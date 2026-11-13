@@ -1,9 +1,12 @@
 ﻿import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'BOWONE — Portfolio & Commission',
-  description: '일러스트, 애니메이션, 3D 모델링 멀티미디어 아티스트 보원 포트폴리오',
+  description: 'Illustrator · Animator · 3D Modeler 보원 포트폴리오 및 커미션 안내',
 };
 
 export default function RootLayout({
@@ -12,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
-      <body className="bg-[#0B0D12] text-slate-100 antialiased">
+    <html lang="ko" className="dark">
+      <body className={`${inter.className} bg-[#121316] text-zinc-100 antialiased selection:bg-zinc-200 selection:text-zinc-900`}>
         {children}
       </body>
     </html>
