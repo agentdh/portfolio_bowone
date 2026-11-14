@@ -69,10 +69,12 @@
     const inboxHeading = make("h3","미등록 카드 · Null_card");
     const dropZone = make("section","","bowone-op-inbox");
     dropZone.append(inboxHeading,make("p","파일을 섹션에 끌어놓거나 등록할 항목을 선택하세요. 등록된 카드를 여기로 끌어오면 회수됩니다."),tools,label("등록할 항목",target),list);
-    dropZone.addEventListener("dragover",event=>{
+    const allowInboxDrop=event=>{
       if (!admin || !event.dataTransfer.types.includes(mime)) return;
-      event.preventDefault(); dropZone.classList.add("op-drop-active");
-    });
+      event.preventDefault(); event.dataTransfer.dropEffect="move"; dropZone.classList.add("op-drop-active");
+    };
+    dropZone.addEventListener("dragenter",allowInboxDrop);
+    dropZone.addEventListener("dragover",allowInboxDrop);
     dropZone.addEventListener("dragleave",event=>{if(!dropZone.contains(event.relatedTarget)) dropZone.classList.remove("op-drop-active");});
     dropZone.addEventListener("drop",event=>{
       dropZone.classList.remove("op-drop-active");
@@ -157,12 +159,14 @@
         el.querySelector(".work-info")?.append(back);
       },
     };
-    document.addEventListener("dragover",event=>{
+    const allowGridDrop=event=>{
       if (!admin || !event.dataTransfer.types.includes(mime)) return;
       const grid = event.target.closest("[data-op-grid]");
       if (!grid) return;
       event.preventDefault(); event.dataTransfer.dropEffect="move"; grid.classList.add("op-drop-active");
-    });
+    };
+    document.addEventListener("dragenter",allowGridDrop);
+    document.addEventListener("dragover",allowGridDrop);
     document.addEventListener("dragleave",event=>{
       const grid = event.target.closest("[data-op-grid]");
       if (grid && !grid.contains(event.relatedTarget)) grid.classList.remove("op-drop-active");
