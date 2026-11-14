@@ -4,6 +4,11 @@ import { useEffect } from "react";
 
 export default function RedesignInteractions() {
   useEffect(() => {
+    const opRequested = new URLSearchParams(window.location.search).get("op") === "1";
+    if (opRequested && window.parent === window) {
+      window.location.replace("https://agentdh.github.io/portfolio_op/");
+      return;
+    }
     let disposed = false;
     Promise.all([import("@/redesign/runtime.cjs"), import("@/redesign/quote.cjs"), import("@/redesign/editable.cjs"), import("@/redesign/image-viewport.cjs"), import("@/redesign/shared-catalog.cjs")]).then(async ([runtime, quote, editable, imageViewport, shared]) => {
       if (disposed) return;
@@ -15,7 +20,7 @@ export default function RedesignInteractions() {
           if (snapshot && !disposed) view.setPublishedCatalog(snapshot, fields.replace);
         }).catch(() => { /* Keep the bundled snapshot when the public data host is unavailable. */ });
       }
-      if (view && window.parent !== window && new URLSearchParams(window.location.search).get("op") === "1") {
+      if (view && opRequested && window.parent !== window) {
         const editor = await import("@/redesign/op-editor.cjs");
         if (!disposed) editor.default.mount(view, fields);
       }

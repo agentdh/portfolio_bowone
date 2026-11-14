@@ -93,10 +93,17 @@
           opId:typeof row.opId==="string" ? row.opId : "",
           sharedMedia:row.sharedMedia===true, sharedRef:/^[a-f0-9]{40}$/i.test(row.sharedRef||"") ? row.sharedRef : "",
           sourcePath:internalPath(row.sourcePath||src),
+          renamedFrom:internalPath(row.renamedFrom),
           title:txt(row.title), desc:txt(row.desc), showTitle:typeof row.showTitle==="boolean" ? row.showTitle : showTitleByDefault,
         }];
       });
     });
+  }
+  function featureWorkIndex(items){
+    const byPath=new Map();
+    for(const item of items)if(item.renamedFrom)byPath.set(item.renamedFrom,item);
+    for(const item of items)if(item.sourcePath)byPath.set(item.sourcePath,item);
+    return byPath;
   }
   function queryText(value) {
     return txt(value).normalize("NFKC").toLocaleLowerCase("ko-KR").replace(/[_·]+/g," ");
@@ -247,7 +254,7 @@
   let refreshedCatalog=false;
 
   function featuredCollections(){
-    const byPath = new Map(archive.filter(item=>internalPath(item.src)).map(item=>[internalPath(item.src),item]));
+    const byPath = featureWorkIndex(archive);
     return new Map(FEATURES.map(feature => [feature.id, feature.works.map(([title,path,preview,desc],i)=>({
       ...(byPath.get(path) || {src:path, label:feature.kind, group:feature.group, order:i+1,kind:"image"}),
       id:feature.id+":"+i, title, desc, showTitle:true, preview,
@@ -407,7 +414,7 @@
       card.dataset.arrivalDelay=String((index%3)*56);
     }
     button.type = "button";
-    button.setAttribute("aria-label",displayName(item) + " 상세 보기");
+    button.setAttribute("aria-label",(editView && item.opId && item.sourcePath ? item.sourcePath.split("/").at(-1) : displayName(item)) + " 상세 보기");
     const poster = make("span","media-placeholder");
     poster.setAttribute("aria-hidden","true");
     poster.append(make("b","",({video:"▶",youtube:"▶",gif:"▷",link:"↗"}[item.kind] || "◫")),make("span","",item.kind==="gif"?"상세에서 움직이는 작업 보기":kindLabel(item.kind)+" / "+item.label));
@@ -451,7 +458,11 @@
     const detail = make("div","work-info-line");
     detail.append(make("small","",item.label),make("span","mono",String(item.order).padStart(2,"0")));
     info.append(detail);
-    if (item.showTitle !== false) info.append(make("h3","",displayName(item)));
+    if (item.showTitle !== false || (editView && item.opId && item.sourcePath)){
+      const title=make("h3","",displayName(item));
+      editView?.title(title,item);
+      info.append(title);
+    }
     if(item.desc) info.append(make("p","",item.desc));
     card.append(button,info);
     if(editView && item.opId) editView.card(card,item);
@@ -705,6 +716,12 @@
     if(url) empty.append(createExternalLink(url,"작품 주소에서 열기 ↗"));
     stage.replaceChildren(empty);
   }
+  function renderViewerTitle(item) {
+    const title=$("viewer-title");
+    title.textContent=displayName(item);
+    editView?.title(title,item);
+    if(viewer.image)viewer.image.alt=displayName(item);
+  }
   function renderViewer() {
     const item=viewer.items[viewer.index];
     if(!item) return;
@@ -718,7 +735,7 @@
     const order=String(viewer.index+1).padStart(2,"0"), total=String(viewer.items.length).padStart(2,"0");
     $("viewer-index").textContent=GROUP_MAP.get(item.group).english+" / "+kindLabel(item.kind);
     $("viewer-count").textContent=order+" / "+total;
-    $("viewer-title").textContent=displayName(item);
+    renderViewerTitle(item);
     $("viewer-desc").textContent=item.desc;
     $("viewer-desc").hidden=!item.desc;
     $("viewer-pricing").href=priceHash(item.group);
@@ -971,6 +988,16 @@
     refreshedCatalog=true;
     window.portfolioData=raw.portfolio;
     archive=normalizeArchive(raw.portfolio,DATA.showTitleByDefault!==false);
+    if(editView && dialog.open && viewer.items[viewer.index]?.opId){
+      const active=viewer.items[viewer.index];
+      const byId=new Map(archive.filter(item=>item.opId).map(item=>[item.opId,item]));
+      viewer.items=viewer.items.map(item=>byId.get(item.opId)||item);
+      const updated=viewer.items[viewer.index];
+      if(updated.title!==active.title || updated.sourcePath!==active.sourcePath){
+        if(updated.sourcePath!==active.sourcePath && (viewer.abortOriginal || !viewer.image))renderViewer();
+        else renderViewerTitle(updated);
+      }
+    }
     featureCollections=featuredCollections();
     email=contactAddress(raw.profile);
     applyProfile(raw.profile||{});
@@ -1033,7 +1060,7 @@
   }
 
   if(typeof module==="object" && module.exports) {
-    module.exports={GROUPS,SUBS,normalizeArchive,filterArchive,parseRoute,wrapIndex,mediaType,parseYouTube,briefText,internalPath,priceHash,makeArrivalMotion,mount};
+    module.exports={GROUPS,SUBS,normalizeArchive,featureWorkIndex,filterArchive,parseRoute,wrapIndex,mediaType,parseYouTube,briefText,internalPath,priceHash,makeArrivalMotion,mount};
   } else {
     mount(window.BowoneQuote, window.createImageViewport);
   }

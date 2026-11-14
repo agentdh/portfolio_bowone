@@ -37,6 +37,60 @@
       el.append(make("span",name),input);
       return el;
     };
+    const renameDialog=make("dialog","","bowone-op-rename");
+    renameDialog.setAttribute("aria-labelledby","op-rename-heading");
+    const renameForm=make("form"), renameHeading=make("h2","카드 파일명 수정");
+    renameHeading.id="op-rename-heading";
+    const renameInput=make("input");
+    renameInput.type="text"; renameInput.required=true; renameInput.maxLength=240;
+    renameInput.autocomplete="off"; renameInput.spellcheck=false;
+    const renameHelp=make("p","","bowone-op-rename-help");
+    renameHelp.id="op-rename-help"; renameInput.setAttribute("aria-describedby",renameHelp.id);
+    const renameStatus=make("p","","bowone-op-rename-status");
+    renameStatus.setAttribute("role","status");
+    const renameActions=make("div","","form-actions");
+    const renameCancel=button("취소",()=>renameDialog.close());
+    const renameSave=make("button","파일명 저장","button button-white");
+    renameSave.type="submit";
+    renameActions.append(renameCancel,renameSave);
+    renameForm.append(renameHeading,label("새 파일명",renameInput),renameHelp,renameStatus,renameActions);
+    renameDialog.append(renameForm);
+    let renaming=null;
+    function openRename(item){
+      if(!admin || !ready || pending.size || !item?.opId || !item.sourcePath || renameDialog.open)return;
+      const filename=item.sourcePath.split("/").at(-1);
+      const suffix=filename.match(/\.[^.]+$/)?.[0]||"";
+      renaming=item;
+      renameInput.value=suffix?filename.slice(0,-suffix.length):filename;
+      renameHelp.textContent=(suffix?suffix+" 확장자는 유지됩니다. ":"")+"같은 이름이 있으면 (1), (2) 순으로 붙습니다.";
+      renameStatus.textContent="";
+      renameDialog.showModal();
+      renameInput.focus();renameInput.select();
+    }
+    renameDialog.addEventListener("cancel",event=>{if(renameSave.disabled)event.preventDefault();});
+    renameDialog.addEventListener("close",()=>{
+      if(!renaming)return;
+      const inViewer=document.querySelector("#viewer[open] .bowone-op-file-title");
+      const inGrid=[...document.querySelectorAll("[data-op-card]")].find(el=>el.dataset.opCard===renaming.opId)?.querySelector(".bowone-op-file-title");
+      (inViewer||inGrid)?.focus({preventScroll:true});
+      renaming=null;
+    });
+    renameForm.addEventListener("submit",async event=>{
+      event.preventDefault();
+      if(!renaming || pending.size)return;
+      const name=renameInput.value.trim();
+      if(!name){renameStatus.textContent="새 파일명을 입력해 주세요.";renameInput.focus();return;}
+      renameSave.disabled=renameCancel.disabled=renameInput.disabled=true;
+      renameStatus.textContent="GitHub 파일명과 카드 정보 저장 중…";
+      try{
+        const {opId:id,sourcePath}=renaming;
+        if(await run("rename",{id,sourcePath,name},renameStatus.textContent))renameDialog.close();
+        else{
+          renameStatus.textContent=status.textContent;
+          renameInput.disabled=false;renameInput.focus();
+        }
+      }finally{renameSave.disabled=renameCancel.disabled=renameInput.disabled=false;}
+    });
     const bar = make("div","","bowone-op-bar");
     const status = make("span","관리자 연결 확인 중","bowone-op-status");
     status.setAttribute("role","status");
@@ -106,6 +160,7 @@
     });
     panel.append(title,inspector,dropZone);
     document.body.prepend(bar,panel);
+    document.body.append(renameDialog);
     document.documentElement.classList.add("bowone-op-view");
     new ResizeObserver(()=>document.documentElement.style.setProperty("--op-bar-height",bar.offsetHeight+"px")).observe(bar);
     const setOpen = open => {
@@ -150,6 +205,22 @@
       });
     }
     const editor = {
+      title(el,item) {
+        if(!admin || !item?.opId || !item.sourcePath)return;
+        const name=item.sourcePath.split("/").at(-1);
+        const control=make("button",name,"bowone-op-file-title");
+        control.type="button";
+        control.title="더블클릭하여 파일명 수정";
+        control.setAttribute("aria-label",name+" 파일명 수정");
+        control.addEventListener("dblclick",event=>{
+          event.preventDefault();
+          openRename(item);
+        });
+        control.addEventListener("click",event=>{
+          if(event.detail===0 || event.pointerType==="touch")openRename(item);
+        });
+        el.replaceChildren(control);
+      },
       card(el,item) {
         if (!admin) return;
         el.dataset.opCard=item.opId;
@@ -241,6 +312,7 @@
       save.disabled=upload.disabled=refresh.disabled=!admin || !ready || !!pending.size;
       if (!admin) {
         setOpen(false);
+        if(renameDialog.open)renameDialog.close();
         if(wasAdmin){
           view.disableEditor();view.resetCatalog();catalogRevision=undefined;settingsRevision=undefined;
           if(!view.getPublishedCatalog().editorSettings)fields.replace(baseSettings);
@@ -252,7 +324,7 @@
       if (!wasAdmin) {
         view.enableEditor(editor);
         setOpen(matchMedia("(min-width: 1100px)").matches);
-        status.textContent="문구를 더블클릭해 편집하세요.";
+        status.textContent="문구나 카드 파일명을 더블클릭해 편집하세요.";
       }
       if (data.grids && !target.options.length) for (const [id,name] of data.grids) target.add(new Option(name,id));
       if (Array.isArray(data.inbox) && data.inboxRevision !== inboxRevision) {

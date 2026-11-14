@@ -28,7 +28,7 @@ function readSharedSnapshot(current, fallback) {
       const key = keyOf(row);
       if (!key || seen.has(key)) return [];
       seen.add(key);
-      const saved = before.get(key);
+      const saved = before.get(key) || (mediaFolders.test(row.renamedFrom || "") ? before.get(row.renamedFrom.normalize("NFC")) : undefined);
       const result = {...saved, ...row};
       if (typeof result.showTitle !== "boolean") result.showTitle = true;
       if (mediaFolders.test(key) && result.sharedMedia!==true) {

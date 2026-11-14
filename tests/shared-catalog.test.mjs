@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import catalog from "../src/redesign/shared-catalog.cjs";
+import runtime from "../src/redesign/runtime.cjs";
 
 test("the public snapshot uses shared membership and order across sections, without resurrecting removed cards",()=>{
   const a={src:"./thumbnail/new.png",title:"새 썸네일"};
@@ -23,4 +24,14 @@ test("explicit new-view order is retained without burying newly added works",()=
   const result=catalog.readSharedSnapshot(current,{portfolio:{}});
   assert.deepEqual(result.portfolio.one.map(row=>row.src),["./thumbnail/new.jpg","./thumbnail/b.jpg","./thumbnail/a.jpg"]);
   assert.equal(catalog.readSharedSnapshot({portfolio:{bad:[]}},null),null);
+});
+
+test("a renamed work remains accessible through the representative selection using the new file path",()=>{
+  const previous={portfolio:{"thumbnail-ld":[{src:"./thumbnail/이전.jpg",showTitle:false}]}};
+  const current={portfolio:{"thumbnail-ld":[{src:"./thumbnail/새 이름.jpg",renamedFrom:"thumbnail/이전.jpg"}]}};
+  const snapshot=catalog.readSharedSnapshot(current,previous);
+  const items=runtime.normalizeArchive(snapshot.portfolio);
+  assert.equal(items.length,1);
+  assert.equal(items[0].showTitle,false);
+  assert.equal(runtime.featureWorkIndex(items).get("thumbnail/이전.jpg").src,"./thumbnail/새 이름.jpg");
 });
