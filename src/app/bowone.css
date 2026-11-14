@@ -337,11 +337,10 @@ body[data-view="commissions"] .site-footer { margin-top: 0; }
 .viewer-top, .viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 9px 15px; padding: 8px 13px; }
 .viewer-top .icon-button { width: 38px; height: 38px; font-size: 22px; }
 .viewer-media-wrap { position: relative; min-width: 0; }
-.viewer-stage { display: grid; place-items: center; width: 100%; height: min(64vh,650px); background: var(--viewer-bg); color: var(--viewer-ink); overflow: hidden; }
-.viewer-stage.image-mode { touch-action: pan-y; }
-.viewer-stage.is-zoomed { touch-action: none; cursor: grab; }
+.viewer-stage { position: relative; display: grid; place-items: center; width: 100%; height: min(64vh,650px); background: var(--viewer-bg); color: var(--viewer-ink); overflow: hidden; }
+.viewer-stage.image-mode { touch-action: none; cursor: grab; }
 .viewer-stage.is-dragging { cursor: grabbing; }
-.viewer-image { width: 100%; height: 100%; object-fit: contain; user-select: none; transform-origin: center; }
+.viewer-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; transform-origin: center; }
 .viewer-stage iframe { display: block; width: 100%; height: 100%; border: 0; }
 .viewer-stage video { width: 100%; height: 100%; object-fit: contain; }
 .viewer-loading { position: absolute; padding: 6px 9px; background: var(--viewer-bg); color: var(--viewer-ink); pointer-events: none; font-size: 12px; }

@@ -243,7 +243,8 @@
         setOpen(false);
         if(wasAdmin){
           view.disableEditor();view.resetCatalog();catalogRevision=undefined;settingsRevision=undefined;
-          fields.replace(baseSettings);draft=false;selected="";inspector.hidden=true;
+          if(!view.getPublishedCatalog().editorSettings)fields.replace(baseSettings);
+          draft=false;selected="";inspector.hidden=true;
         }
         status.textContent="";
         return;

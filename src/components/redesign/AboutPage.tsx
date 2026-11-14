@@ -70,7 +70,13 @@ export default function AboutPage() {
             <dl className="about-facts"><div><dt>EDUCATION</dt><dd>한국영상대학교 게임콘텐츠전공</dd></div><div><dt>AWARD</dt><dd>2026 한국게임학회 × 넥슨게임즈 입선</dd></div></dl>
           </div>
           <div className="career" data-arrival="" data-arrival-delay="82">
-            <details open><summary><span className="mono">01</span><strong>주요 외주 이력</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
+            <details id="career-scope"><summary><span className="mono">01</span><strong data-edit-key="career.scope">작업 범위</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
+              <dl className="tools-list"><div><dt>일러스트</dt><dd>2D 일러스트 · 썸네일 · 방송소스 · 컨셉아트 · 디자인</dd></div><div><dt>영상</dt><dd>MV 제작 · 2D 애니메이션 · 3D 애니메이션</dd></div><div><dt>모델링</dt><dd>캐릭터 · 배경 소품 · 방송 배경</dd></div><div><dt>마인크래프트</dt><dd>스킨 · 리소스팩 · 마인크래프트 애니메이션</dd></div><div><dt>기타</dt><dd>Live2D · 픽셀아트</dd></div></dl>
+            </details>
+            <details id="career-tools"><summary><span className="mono">02</span><strong data-edit-key="career.tools">사용 프로그램</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
+              <dl className="tools-list"><div><dt>일러스트·픽셀</dt><dd>Clip Studio Paint · Photoshop · Aseprite · ibis Paint X · Paint Tool SAI</dd></div><div><dt>애니메이션</dt><dd>Live2D Cubism · Spine · Clip Studio Paint</dd></div><div><dt>영상</dt><dd>After Effects · Premiere Pro</dd></div><div><dt>3D</dt><dd>Maya · Blender · ZBrush · Marvelous Designer · Substance Painter</dd></div><div><dt>마인크래프트</dt><dd>Blockbench · MC Skin Editor · Mine-imator · Cubik Studio</dd></div></dl>
+            </details>
+            <details id="career-clients"><summary><span className="mono">03</span><strong data-edit-key="career.clients">주요 외주 이력</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
               <ul className="career-list">
                 <li><div><strong>벌스워크 주식회사</strong><p>마인크래프트 스킨 · 모델 · 애니메이션</p></div><span className="career-date">2022.12.01–2023.07.31</span></li>
                 <li><div><strong>우마공</strong><p>10주년 기념 타이틀 배너 디자인</p></div><span className="career-date">2021.01.02–2021.01.10</span></li>
@@ -78,14 +84,8 @@ export default function AboutPage() {
                 <li><div><strong>샌드박스네트워크</strong><p>마인크래프트 모델링 및 애니메이션</p></div><span className="career-date">2020.09.04–2020.10.10</span></li>
               </ul>
             </details>
-            <details><summary><span className="mono">02</span><strong>사용하는 프로그램</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
-              <dl className="tools-list"><div><dt>일러스트·픽셀</dt><dd>Clip Studio Paint · Photoshop · Aseprite · ibis Paint X · Paint Tool SAI</dd></div><div><dt>애니메이션</dt><dd>Live2D Cubism · Spine · Clip Studio Paint</dd></div><div><dt>영상</dt><dd>After Effects · Premiere Pro</dd></div><div><dt>3D</dt><dd>Maya · Blender · ZBrush · Marvelous Designer · Substance Painter</dd></div><div><dt>마인크래프트</dt><dd>Blockbench · MC Skin Editor · Mine-imator · Cubik Studio</dd></div></dl>
-            </details>
-            <details><summary><span className="mono">03</span><strong>동부 활동</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
+            <details id="career-activities"><summary><span className="mono">04</span><strong data-edit-key="career.activities">동부 활동</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
               <dl className="tools-list"><div><dt>진행 중</dt><dd>김루야 · 2026.01.13~<br />조아햄 · 2025.11.19~<br />배비꼬 · 2023.11.17–2024.05.19 / 2025.11.19~</dd></div><div><dt>중단·보류</dt><dd>다비 · 2025.12.08–2026.03.13 (중단)<br />이보늬 · 2025.11.19~ (보류)<br />쵸봄 · 2021.11.22–2024.05.19 (중단)</dd></div></dl>
-            </details>
-            <details><summary><span className="mono">04</span><strong>작업 범위</strong><span className="disclosure-mark" aria-hidden="true"></span></summary>
-              <dl className="tools-list"><div><dt>일러스트</dt><dd>2D 일러스트 · 썸네일 · 방송소스 · 컨셉아트 · 디자인</dd></div><div><dt>영상</dt><dd>MV 제작 · 2D 애니메이션 · 3D 애니메이션</dd></div><div><dt>모델링</dt><dd>캐릭터 · 배경 소품 · 방송 배경</dd></div><div><dt>마인크래프트</dt><dd>스킨 · 리소스팩 · 마인크래프트 애니메이션</dd></div><div><dt>기타</dt><dd>Live2D · 픽셀아트</dd></div></dl>
             </details>
           </div>
         </div>

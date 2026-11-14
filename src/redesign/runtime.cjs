@@ -173,7 +173,7 @@
     };
   }
 
-  function mount(quoteApi) {
+  function mount(quoteApi, createImageViewport) {
   const $ = id => document.getElementById(id);
   const main=$("main");
   if(!main || main.dataset.bowoneMounted==="true")return;
@@ -214,7 +214,7 @@
     if(!local) return [];
     if(item?.sharedMedia && sources.sharedBase) {
       const base=item.sharedRef ? sources.sharedBase.replace(/\/main\/$/,"/"+item.sharedRef+"/") : sources.sharedBase;
-      return dedup([relativeURL(base,local),relativeURL(sources.sharedBase,local)]);
+      return dedup([relativeURL(base,local),relativeURL(sources.sharedBase,local),relativeURL(sources.base,local)]);
     }
     const online = location.protocol === "http:" || location.protocol === "https:";
     const own = online && (DATA.useLocalOriginals ?? !location.hostname.match(/^(localhost|127\.0\.0\.1|\[::1\])$/));
@@ -412,14 +412,14 @@
     poster.setAttribute("aria-hidden","true");
     poster.append(make("b","",({video:"▶",youtube:"▶",gif:"▷",link:"↗"}[item.kind] || "◫")),make("span","",item.kind==="gif"?"상세에서 움직이는 작업 보기":kindLabel(item.kind)+" / "+item.label));
     button.append(poster);
-    const localPoster=asset(DATA.localPreviews[item.src] || DATA.localPreviews[internalPath(item.src)]);
+    const localPoster=asset(DATA.localPreviews[item.src] || DATA.localPreviews[item.sourcePath]);
     const safeThumb=item.thumb && (internalPath(item.thumb)||item.thumb)!==(internalPath(item.src)||item.src);
     const remotePosters=safeThumb?mediaURLs(item.thumb,item):[];
-    const preferPublished=refreshedCatalog || DATA.useLocalOriginals===true;
+    const preferPublished=!item.sharedMedia && (refreshedCatalog || DATA.useLocalOriginals===true);
     const options = dedup([
       ...(preferPublished && safeThumb ? [...remotePosters.slice(0,1),localPoster,...remotePosters.slice(1)] : [localPoster,...remotePosters]),
       ...(item.youtubeId ? ["https://i.ytimg.com/vi/" + item.youtubeId + "/hqdefault.jpg"] : []),
-      ...(!localPoster && (item.kind==="image" || item.kind==="gif") ? mediaURLs(item.src,item).slice(0,3) : []),
+      ...((item.kind==="image" || item.kind==="gif") ? mediaURLs(item.src,item).slice(0,3) : []),
     ]);
     if (options.length) {
       const img = make("img");
@@ -430,7 +430,7 @@
         poster.hidden=true;
       }});
     }
-    const motion=item.kind==="gif" && asset(DATA.localMotion?.[internalPath(item.src)]);
+    const motion=item.kind==="gif" && asset(DATA.localMotion?.[item.sourcePath]);
     if(motion && motionObserver){
       const clip=make("img","work-motion");
       clip.alt=""; clip.decoding="async"; clip.draggable=false;
@@ -672,7 +672,8 @@
   }
 
   const dialog = $("viewer"), stage = $("viewer-stage");
-  const viewer = {items:[], index:0, opener:null, scale:1, x:0, y:0, drag:null, image:null, abortOriginal:null};
+  const viewer = {items:[], index:0, opener:null, image:null, abortOriginal:null};
+  const imageViewport = createImageViewport(stage,()=>viewer.image,percent=>{$("zoom-reset").textContent=percent;});
   function stopViewerMedia() {
     viewer.abortOriginal?.();
     viewer.abortOriginal=null;
@@ -709,10 +710,9 @@
     if(!item) return;
     stopViewerMedia();
     stage.replaceChildren();
-    stage.classList.remove("image-mode","is-zoomed","is-dragging");
+    stage.classList.remove("image-mode");
+    imageViewport.reset();
     viewer.image=null;
-    viewer.drag=null;
-    viewer.scale=1; viewer.x=0; viewer.y=0;
     const zoomable=item.kind==="image" || item.kind==="gif";
     $("zoom-controls").hidden=!zoomable;
     const order=String(viewer.index+1).padStart(2,"0"), total=String(viewer.items.length).padStart(2,"0");
@@ -742,7 +742,7 @@
     } else if(item.kind==="video"){
       const video=make("video");
       video.controls=true; video.playsInline=true; video.preload="metadata";
-      const local=asset(DATA.localClips[internalPath(item.src)]);
+      const local=asset(DATA.localClips[item.sourcePath]);
       const choices=dedup([...urls,local]);
       if(!choices.length) viewerFallback("영상 주소를 확인할 수 없습니다.");
       else{
@@ -760,7 +760,7 @@
       const waiting=make("span","viewer-loading","작품 이미지 불러오는 중");
       viewer.image=img;
       stage.append(img,waiting);
-      const path=internalPath(item.src);
+      const path=item.sourcePath||internalPath(item.src);
       const preview=asset(item.preview || DATA.localFull[path]) || asset(DATA.localPreviews[item.src] || DATA.localPreviews[path]);
       let previewFailed=!preview, originalFailed=!urls.length;
       const stillOpen=()=>stage.contains(img) && viewer.image===img;
@@ -772,7 +772,7 @@
       if(preview) {
         img.addEventListener("load",()=>{
           if(!stillOpen())return;
-          waiting.remove(); applyZoom();
+          waiting.remove(); imageViewport.draw();
           if(originalFailed) $("viewer-index").textContent+=" / 미리보기";
         },{once:true});
         img.addEventListener("error",()=>{previewFailed=true;checkFallback();},{once:true});
@@ -785,7 +785,7 @@
           done:()=>{
             if(!stillOpen())return;
             viewer.abortOriginal=null;
-            img.replaceWith(original); viewer.image=original; waiting.remove(); applyZoom();
+            img.replaceWith(original); viewer.image=original; waiting.remove(); imageViewport.draw();
           },
           fail:()=>{
             originalFailed=true;
@@ -798,7 +798,7 @@
       checkFallback();
     }
     $("viewer-meta").querySelectorAll(".viewer-source").forEach((a,i,arr)=>{if(item.kind!=="youtube" || i<arr.length-1) a.remove();});
-    if (zoomable) applyZoom();
+    if (zoomable) imageViewport.draw();
   }
   function createMediaLink(url,title) {
     const a=createExternalLink(url || "#",title+" ↗");
@@ -823,11 +823,12 @@
   });
   dialog.addEventListener("close",()=>{
     document.body.classList.remove("viewer-open");
+    imageViewport.reset();
     stopViewerMedia();
     stage.replaceChildren();
     $("viewer-meta").querySelectorAll(".viewer-source").forEach(a=>a.remove());
     if (viewer.opener?.isConnected && viewer.opener.getClientRects().length) viewer.opener.focus({preventScroll:true});
-    viewer.items=[]; viewer.image=null; viewer.drag=null;
+    viewer.items=[]; viewer.image=null;
     syncWorkMotion();
   });
   document.querySelectorAll("[data-feature]").forEach(button=>button.addEventListener("click",()=>{
@@ -835,58 +836,9 @@
     if (collection?.length) openViewer(collection,0,button);
   }));
 
-  const clamp = (x,a,b) => Math.max(a,Math.min(x,b));
-  function applyZoom() {
-    if(!viewer.image) return;
-    const {width,height}=stage.getBoundingClientRect();
-    const {naturalWidth,naturalHeight}=viewer.image;
-    if (editView) {
-      viewer.x=clamp(viewer.x,-width,width);viewer.y=clamp(viewer.y,-height,height);
-    } else if (naturalWidth && naturalHeight && width && height) {
-      const fit=Math.min(width/naturalWidth,height/naturalHeight);
-      const maxX=Math.max(0,(naturalWidth*fit*viewer.scale-width)/2);
-      const maxY=Math.max(0,(naturalHeight*fit*viewer.scale-height)/2);
-      viewer.x=clamp(viewer.x,-maxX,maxX); viewer.y=clamp(viewer.y,-maxY,maxY);
-    }
-    stage.classList.toggle("is-zoomed",!!editView || viewer.scale>1.001);
-    viewer.image.style.transform="translate("+viewer.x+"px,"+viewer.y+"px) scale("+viewer.scale+")";
-    $("zoom-reset").textContent=Math.round(viewer.scale*100)+"%";
-    $("zoom-out").disabled=viewer.scale<=.251;
-    $("zoom-in").disabled=viewer.scale>=4.999;
-  }
-  function zoomTo(value, clientX, clientY) {
-    if(!viewer.image) return;
-    const old=viewer.scale, next=clamp(value,.25,5);
-    const rect=stage.getBoundingClientRect();
-    const cx=Number.isFinite(clientX)?clientX-rect.left-rect.width/2:0;
-    const cy=Number.isFinite(clientY)?clientY-rect.top-rect.height/2:0;
-    viewer.x=next===1 ? 0 : cx+(viewer.x-cx)*next/old;
-    viewer.y=next===1 ? 0 : cy+(viewer.y-cy)*next/old;
-    viewer.scale=next; applyZoom();
-  }
-  $("zoom-reset").addEventListener("click",()=>zoomTo(1));
-  $("zoom-in").addEventListener("click",()=>zoomTo(viewer.scale*1.25));
-  $("zoom-out").addEventListener("click",()=>zoomTo(viewer.scale/1.25));
-  stage.addEventListener("wheel",e=>{
-    if(!viewer.image || e.ctrlKey || !e.deltaY) return;
-    e.preventDefault();
-    zoomTo(viewer.scale*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY);
-  },{passive:false});
-  stage.addEventListener("pointerdown",e=>{
-    if(e.button!==0 || !viewer.image || (!editView && viewer.scale<=1.001)) return;
-    viewer.drag={id:e.pointerId, x:e.clientX, y:e.clientY, baseX:viewer.x, baseY:viewer.y};
-    stage.setPointerCapture(e.pointerId); stage.classList.add("is-dragging");
-  });
-  stage.addEventListener("pointermove",e=>{
-    const drag=viewer.drag;
-    if(drag?.id!==e.pointerId) return;
-    viewer.x=drag.baseX+e.clientX-drag.x; viewer.y=drag.baseY+e.clientY-drag.y; applyZoom();
-  });
-  for(const name of ["pointerup","pointercancel","lostpointercapture"]) stage.addEventListener(name,e=>{
-    if(viewer.drag?.id!==e.pointerId) return;
-    viewer.drag=null; stage.classList.remove("is-dragging");
-  });
-  window.addEventListener("resize",()=>{ if(dialog.open) applyZoom(); });
+  $("zoom-reset").addEventListener("click",imageViewport.reset);
+  $("zoom-in").addEventListener("click",()=>imageViewport.zoom(1.25));
+  $("zoom-out").addEventListener("click",()=>imageViewport.zoom(1/1.25));
   document.addEventListener("contextmenu",e=>{
     if(editView && e.target.closest(".viewer-image")) return;
     if(!e.target.closest("input,select,textarea")) e.preventDefault();
@@ -1059,9 +1011,22 @@
     else if(document.readyState==="complete")refreshPublishedData();
     else window.addEventListener("load",refreshPublishedData,{once:true});
   }
-  const published=raw;
+  let published=raw;
+  let restorePublishedText;
+  const defaultEditorSettings=DATA.editorSettings;
   return {
-    setCatalog, resetCatalog:()=>setCatalog(published),
+    setCatalog,
+    getPublishedCatalog:()=>published,
+    setPublishedCatalog(next,restoreText){
+      const changed=JSON.stringify(published.portfolio)!==JSON.stringify(next.portfolio) || JSON.stringify(published.profile)!==JSON.stringify(next.profile);
+      published=next;
+      restorePublishedText=restoreText;
+      if(!editView){
+        if(changed)setCatalog(next);
+        restorePublishedText(next.editorSettings||defaultEditorSettings);
+      }
+    },
+    resetCatalog:()=>{setCatalog(published);restorePublishedText?.(published.editorSettings||defaultEditorSettings);},
     enableEditor: editor=>{editView=editor; if(state.route?.view==="works")renderArchive();},
     disableEditor: ()=>{editView=null; if(state.route?.view==="works")renderArchive();},
   };
@@ -1070,6 +1035,6 @@
   if(typeof module==="object" && module.exports) {
     module.exports={GROUPS,SUBS,normalizeArchive,filterArchive,parseRoute,wrapIndex,mediaType,parseYouTube,briefText,internalPath,priceHash,makeArrivalMotion,mount};
   } else {
-    mount(window.BowoneQuote);
+    mount(window.BowoneQuote, window.createImageViewport);
   }
 })();

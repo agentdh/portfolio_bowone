@@ -17,6 +17,7 @@ const site = {
   ...siteAssets,
   prices: pricing,
   editorSettings,
+  sharedCatalogUrl: "https://raw.githubusercontent.com/agentdh/portfolio/main/portfolio.json",
   catalogRefresh: false,
   showTitleByDefault: false,
   useLocalOriginals: process.env.VERCEL_ENV === "production" || process.env.BOWONE_LOCAL_ORIGINALS === "1",

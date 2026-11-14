@@ -5,6 +5,13 @@ import test from "node:test";
 const html = readFileSync(process.env.BOWONE_BUILD_HTML || ".next/server/app/index.html", "utf8");
 const visibleText = (fragment) => fragment.replace(/<[^>]+>/g, "");
 
+test("the four career panels are initially closed and appear in the requested order", () => {
+  const career=html.match(/<div class="career"[^>]*>([\s\S]*?)<\/details>\s*<\/div>/)?.[1] || "";
+  assert.deepEqual([...career.matchAll(/<details([^>]*)><summary>.*?<strong[^>]*>([^<]+)<\/strong>/g)].map(([, attrs, name])=>[name,attrs.includes("open")]), [
+    ["작업 범위",false],["사용 프로그램",false],["주요 외주 이력",false],["동부 활동",false],
+  ]);
+});
+
 test("the public profile and contact actions sit between the hero and selected works", () => {
   const intro = html.match(/<section\b[^>]*\bid="artist-intro"[\s\S]*?<\/section>/)?.[0];
   assert.ok(intro, "Missing rendered profile block");
