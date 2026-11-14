@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Shared viewer/calculator runtime is copied verbatim from the tested release source.
+    "src/redesign/*.cjs",
   ]),
 ]);
 
