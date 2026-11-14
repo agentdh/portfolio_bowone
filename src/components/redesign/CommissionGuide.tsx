@@ -9,8 +9,8 @@ const NO: Permission = { label: "불가", tone: "no" };
 const ASK: Permission = { label: "협의", tone: "ask" };
 const POLICIES: { name: string; permissions: Permission[]; owner: string }[] = [
   { name: "비상업용", permissions: [YES, NO, NO, NO], owner: "보원" },
-  { name: "방송용", permissions: [YES, YES, ASK, { label: "임의 수정 불가", tone: "no", note: "사전 확인 필요" }], owner: "보원" },
-  { name: "상업용", permissions: [YES, YES, YES, { label: "가능", tone: "yes", note: "계약 조건 참고" }], owner: "보원 / 의뢰인" },
+  { name: "방송용", permissions: [YES, YES, ASK, NO], owner: "보원" },
+  { name: "상업용", permissions: [YES, YES, YES, YES], owner: "보원" },
 ];
 
 const REQUEST_TEMPLATE = `[BOWONE 커미션 신청 양식]

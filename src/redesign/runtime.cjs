@@ -840,13 +840,15 @@
     if(!viewer.image) return;
     const {width,height}=stage.getBoundingClientRect();
     const {naturalWidth,naturalHeight}=viewer.image;
-    if (naturalWidth && naturalHeight && width && height) {
+    if (editView) {
+      viewer.x=clamp(viewer.x,-width,width);viewer.y=clamp(viewer.y,-height,height);
+    } else if (naturalWidth && naturalHeight && width && height) {
       const fit=Math.min(width/naturalWidth,height/naturalHeight);
       const maxX=Math.max(0,(naturalWidth*fit*viewer.scale-width)/2);
       const maxY=Math.max(0,(naturalHeight*fit*viewer.scale-height)/2);
       viewer.x=clamp(viewer.x,-maxX,maxX); viewer.y=clamp(viewer.y,-maxY,maxY);
     }
-    stage.classList.toggle("is-zoomed",viewer.scale>1.001);
+    stage.classList.toggle("is-zoomed",!!editView || viewer.scale>1.001);
     viewer.image.style.transform="translate("+viewer.x+"px,"+viewer.y+"px) scale("+viewer.scale+")";
     $("zoom-reset").textContent=Math.round(viewer.scale*100)+"%";
     $("zoom-out").disabled=viewer.scale<=.251;
@@ -871,7 +873,7 @@
     zoomTo(viewer.scale*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY);
   },{passive:false});
   stage.addEventListener("pointerdown",e=>{
-    if(e.button!==0 || !viewer.image || viewer.scale<=1.001) return;
+    if(e.button!==0 || !viewer.image || (!editView && viewer.scale<=1.001)) return;
     viewer.drag={id:e.pointerId, x:e.clientX, y:e.clientY, baseX:viewer.x, baseY:viewer.y};
     stage.setPointerCapture(e.pointerId); stage.classList.add("is-dragging");
   });

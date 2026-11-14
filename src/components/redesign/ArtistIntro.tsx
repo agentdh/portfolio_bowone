@@ -40,7 +40,7 @@ export default function ArtistIntro() {
         <p className="artist-intro-bio">{bio}</p>
         <div className="artist-intro-actions">
           <a className="button button-accent" href={url.href} target="_blank" rel="noopener noreferrer">
-            {commissionLabel} <ExternalLink size={16} aria-hidden="true" />
+            <span data-edit-key="artist-intro.cta">{commissionLabel}</span> <ExternalLink size={16} aria-hidden="true" />
           </a>
           <CopyTextButton text={email} label={email} actionLabel="프로필 이메일 주소 복사" successLabel="이메일 복사됨" className="button button-outline" />
         </div>

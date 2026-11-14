@@ -128,7 +128,12 @@
       showField(key); entryText.focus(); entryText.select();
     });
     document.addEventListener("click",event=>{
-      if(admin && event.detail>1 && fields.find(event.target) && event.target.closest("a"))event.preventDefault();
+      if(!admin || !fields.find(event.target))return;
+      const link=event.target.closest("a");
+      if(link && (event.detail>1 || event.target.closest("[data-edit-key]") && link.origin!==location.origin)){
+        // Use keyboard activation or the neighbouring icon for an external link while editing its label.
+        if(event.detail>0)event.preventDefault();
+      }
     },true);
     function dragValue(event) {
       try { return JSON.parse(event.dataTransfer.getData(mime)); } catch { return null; }

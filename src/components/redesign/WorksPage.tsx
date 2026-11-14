@@ -13,8 +13,8 @@ export default function WorksPage() {
             <div className="archive-toolbar">
               <div className="archive-heading"><h2 id="archive-current">썸네일</h2><p id="work-results" role="status" aria-live="polite"></p></div>
               <div className="filter-tools">
-                <label className="field subfield" htmlFor="work-sub"><span>세부 분야</span><select id="work-sub"><option value="">전체</option></select></label>
-                <label className="field searchfield" htmlFor="work-query"><span>작품 검색</span><input type="search" id="work-query" placeholder="제목, 설명 또는 분야 검색" autoComplete="off" /></label>
+                <label className="field subfield" htmlFor="work-sub"><span data-edit-key="works.filters.category">세부 분야</span><select id="work-sub"><option value="">전체</option></select></label>
+                <label className="field searchfield" htmlFor="work-query"><span data-edit-key="works.filters.search">작품 검색</span><input type="search" id="work-query" placeholder="제목, 설명 또는 분야 검색" autoComplete="off" /></label>
                 <button type="button" id="filter-reset" className="button button-outline">필터 초기화</button>
               </div>
             </div>
