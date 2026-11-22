@@ -1,4 +1,5 @@
 import CommissionGuide, { QuickCommissionTemplate } from "./CommissionGuide";
+import DiscordIcon from "./DiscordIcon";
 
 export default function CommissionPage() {
   return (
@@ -24,7 +25,7 @@ export default function CommissionPage() {
 
       <section className="contact-section" id="contact" aria-labelledby="contact-title">
         <div className="wrap contact-layout">
-          <div className="contact-copy" data-arrival=""><p className="index-label">03 / CONTACT</p><h2 id="contact-title">작업을<br />이야기해요<span>.</span></h2><p>의뢰할 분야와 사용 용도, 원하는 일정을 알려주시면 상담이 더 수월합니다.</p><a id="contact-discord" className="button button-white" href="https://discord.gg/EZhs87qRvU" target="_blank" rel="noopener noreferrer"><span id="contact-discord-label">의뢰하러 가기</span><span aria-hidden="true">↗</span></a><p className="contact-channel">DISCORD COMMISSION</p><a id="contact-email" className="contact-email" href="mailto:agentdh@naver.com"><span id="contact-email-label">agentdh@naver.com</span> <span aria-hidden="true">↗</span></a> <button type="button" className="text-link copy-address" id="email-copy">이메일 복사</button><p className="inline-status" id="email-copy-status" role="status"></p></div>
+          <div className="contact-copy" data-arrival=""><p className="index-label">03 / CONTACT</p><h2 id="contact-title">작업을<br />이야기해요<span>.</span></h2><p>의뢰할 분야와 사용 용도, 원하는 일정을 알려주시면 상담이 더 수월합니다.</p><a id="contact-discord" className="button button-white" href="https://discord.gg/QGsfqz9HPC" target="_blank" rel="noopener noreferrer"><span className="discord-cta-content"><DiscordIcon /><span id="contact-discord-label">디스코드로 문의하기</span></span><span aria-hidden="true">↗</span></a><p className="contact-channel">DISCORD COMMISSION</p><a id="contact-email" className="contact-email" href="mailto:agentdh@naver.com"><span id="contact-email-label">agentdh@naver.com</span> <span aria-hidden="true">↗</span></a> <button type="button" className="text-link copy-address" id="email-copy">이메일 복사</button><p className="inline-status" id="email-copy-status" role="status"></p></div>
           <form className="brief-form" id="brief-form">
             <h3>의뢰 신청 양식</h3><p>작성한 내용을 복사해 Discord에 붙여넣거나 메일 초안으로 여세요. 이 페이지에서 자동 발송되지 않습니다.</p>
             <div className="form-row"><label className="field"><span>이름 / 활동명</span><input type="text" id="brief-name" autoComplete="name" maxLength={80} required /></label><label className="field"><span>회신받을 이메일</span><input type="email" id="brief-reply" autoComplete="email" maxLength={200} required /></label></div>

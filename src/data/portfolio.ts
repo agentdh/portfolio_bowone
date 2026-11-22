@@ -85,7 +85,7 @@ export const ARTIST_PROFILE = {
     profileRaw.bio ||
     '일러스트, 애니메이션, 3D 모델링을 중심으로 다양한 디지털 콘텐츠를 제작하고 있는 멀티미디어 아티스트 보원입니다. 캐릭터 디자인부터 MV 제작, 게임용 픽셀아트 및 마인크래프트 리소스 제작까지 폭넓은 작업을 진행하고 있습니다.',
   email: profileRaw.email || 'agentdh@naver.com',
-  discordUrl: profileRaw.commissionLinkUrl || 'https://discord.gg/EZhs87qRvU',
+  discordUrl: profileRaw.commissionLinkUrl || 'https://discord.gg/QGsfqz9HPC',
   profileImg: normalizePath(profileRaw.profileImgUrl) || '/opimage/1782689883234-무제22_20241013202118.png',
   commissionOpen: true,
   socials: [

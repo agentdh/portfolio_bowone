@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import catalog from "@/data/portfolio.json";
 import { ARTIST_PROFILE } from "@/data/portfolio";
 import CopyTextButton from "./CopyTextButton";
+import DiscordIcon from "./DiscordIcon";
 
 const profile = catalog.profile as Partial<{
   name: string;
@@ -17,7 +18,7 @@ function commissionUrl() {
     const url = new URL(profile?.commissionLinkUrl || "");
     if (url.protocol === "https:" && !url.username && !url.password) return url;
   } catch { /* Use the verified public contact address. */ }
-  return new URL("https://discord.gg/EZhs87qRvU");
+  return new URL("https://discord.gg/QGsfqz9HPC");
 }
 
 export default function ArtistIntro() {
@@ -26,10 +27,10 @@ export default function ArtistIntro() {
   const bio = profile?.bio?.trim() || ARTIST_PROFILE.bio;
   const email = profile?.email?.trim() || ARTIST_PROFILE.email;
   const url = commissionUrl();
-  const configuredLabel = profile?.commissionLinkTitle?.trim() || "의뢰하기";
+  const configuredLabel = profile?.commissionLinkTitle?.trim() || "디스코드로 문의하기";
   const isDiscord = ["discord.gg", "discord.com", "www.discord.com"].includes(url.hostname);
   const commissionLabel = isDiscord && ["의뢰하기", "의뢰하러 가기"].includes(configuredLabel)
-    ? "Discord 의뢰하기"
+    ? "디스코드로 문의하기"
     : configuredLabel;
 
   return (
@@ -40,7 +41,7 @@ export default function ArtistIntro() {
         <p className="artist-intro-bio">{bio}</p>
         <div className="artist-intro-actions">
           <a className="button button-accent" href={url.href} target="_blank" rel="noopener noreferrer">
-            <span data-edit-key="artist-intro.cta">{commissionLabel}</span> <ExternalLink size={16} aria-hidden="true" />
+            <span className="discord-cta-content"><DiscordIcon /><span data-edit-key="artist-intro.cta">{commissionLabel}</span></span> <ExternalLink size={16} aria-hidden="true" />
           </a>
           <CopyTextButton text={email} label={email} actionLabel="프로필 이메일 주소 복사" successLabel="이메일 복사됨" className="button button-outline" />
         </div>
