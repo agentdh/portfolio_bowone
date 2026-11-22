@@ -117,10 +117,18 @@
   function filterArchive(items, group, sub, query) {
     const words = queryText(query).split(/\s+/).filter(Boolean);
     return items.filter(item => {
-      if ((group && group !== "all" && item.group !== group) || (sub && item.sub !== sub)) return false;
+      if ((group && group !== "all" && item.group !== group) || (sub && (sub === "style" && group === "illust" ? !STYLE_SECTIONS.includes(item.sub) : item.sub !== sub))) return false;
       if (!words.length) return true;
       const indexed = queryText([item.title,item.desc,item.label,GROUP_MAP.get(item.group)?.name,GROUP_MAP.get(item.group)?.english].join(" "));
       return words.every(word => indexed.includes(word));
+    });
+  }
+  function subfilterChoices(group,sections) {
+    let hasStyle=false;
+    return sections.flatMap(([id,label])=>{
+      if(group!=="illust" || !STYLE_SECTIONS.includes(id))return [[id,label]];
+      if(hasStyle)return [];
+      hasStyle=true;return [["style","스타일"]];
     });
   }
   function parseRoute(raw) {
@@ -396,10 +404,11 @@
   function updateSubfilters() {
     const select = $("work-sub");
     const sections = sectionsFor(state.group);
-    select.replaceChildren(new Option("전체 세부 분야",""),...sections.map(([id,label])=>new Option(label,id)));
-    select.disabled = sections.length<2;
-    if(state.sub && !sections.some(([id])=>id===state.sub)) state.sub="";
-    select.value = state.sub;
+    const choices=subfilterChoices(state.group,sections);
+    select.replaceChildren(new Option("전체 세부 분야",""),...choices.map(([id,label])=>new Option(label,id)));
+    select.disabled = choices.length<2;
+    if(state.sub && !(state.group==="illust" && state.sub==="style") && !sections.some(([id])=>id===state.sub)) state.sub="";
+    select.value = state.group==="illust" && STYLE_SECTIONS.includes(state.sub) ? "style" : state.sub;
     for (const btn of $("work-groups").children) btn.setAttribute("aria-pressed",String(btn.dataset.group===state.group));
     $("works-to-pricing").href = priceHash(state.group);
     $("archive-current").textContent=GROUP_MAP.get(state.group).name;
@@ -563,7 +572,7 @@
         b.setAttribute("aria-pressed",String(id===active));
         b.addEventListener("click",()=>{
           state.style=id;
-          if(state.sub) location.hash=linkToGroup("illust",id);
+          if(state.sub && state.sub!=="style") location.hash=linkToGroup("illust",id);
           else choose(id);
         });
         controls.append(b);
@@ -571,12 +580,12 @@
       region.append(controls,panel);
       panel.append(sectionGrid(active,label(active),items.filter(x=>x.sub===active)));
       return region;
-    },STYLE_SECTIONS.includes(state.sub));
+    },state.sub==="style" || STYLE_SECTIONS.includes(state.sub));
     return details;
   }
   function renderArchive(){
     const items=filterArchive(archive,state.group,state.sub,state.query);
-    const root=$("work-sections"), group=GROUP_MAP.get(state.group), display=sectionsFor(state.group).filter(([id])=>!state.sub||id===state.sub);
+    const root=$("work-sections"), group=GROUP_MAP.get(state.group), display=sectionsFor(state.group).filter(([id])=>!state.sub||id===state.sub||state.group==="illust"&&state.sub==="style"&&STYLE_SECTIONS.includes(id));
     forgetArrival(root);
     root.replaceChildren();
     let stylesDone=false;
@@ -1082,6 +1091,12 @@
   const defaultEditorSettings=DATA.editorSettings;
   return {
     setCatalog,
+    currentGroupCards:()=>archive.filter(row=>row.group===state.group&&row.opId).map(row=>row.opId),
+    previewInbox(item,opener){
+      if(!editView)return;
+      const rows=normalizeArchive({"thumbnail-ld":[{...item,src:item.url,showTitle:true}]}).map(row=>({...row,label:"미등록",opId:""}));
+      if(rows.length)openViewer(rows,0,opener);
+    },
     reorderCards(grid,ids,before="",after=false){
       const items=raw.portfolio[grid];
       if(!editView || !Array.isArray(items))return null;
@@ -1116,7 +1131,7 @@
   }
 
   if(typeof module==="object" && module.exports) {
-    module.exports={GROUPS,SUBS,normalizeArchive,featureWorkIndex,sameCardContent,filterArchive,parseRoute,wrapIndex,mediaType,parseYouTube,briefText,internalPath,priceHash,makeArrivalMotion,mount};
+    module.exports={GROUPS,SUBS,normalizeArchive,featureWorkIndex,sameCardContent,filterArchive,subfilterChoices,parseRoute,wrapIndex,mediaType,parseYouTube,briefText,internalPath,priceHash,makeArrivalMotion,mount};
   } else {
     mount(window.BowoneQuote, window.createImageViewport);
   }

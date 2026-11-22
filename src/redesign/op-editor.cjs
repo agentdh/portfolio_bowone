@@ -17,7 +17,7 @@
     if (!origin) return;
     const pending = new Map();
     const {createPressDrag}=require("./card-sort.cjs");
-    const chosen=new Set();
+    const chosen=new Set(),inboxChosen=new Set();
     let selectionMode=false,working=false;
     let sequence = 0, admin = false, ready = false, selected = "", inbox = [], initialized = false;
     let catalogRevision, settingsRevision, inboxRevision, draft = false;
@@ -40,6 +40,23 @@
       el.append(make("span",name),input);
       return el;
     };
+    // The new editor is a cross-origin iframe: browser confirm() can be suppressed there.
+    const confirmDialog=make("dialog","","bowone-op-rename bowone-op-confirm");
+    confirmDialog.setAttribute("aria-labelledby","op-confirm-heading");
+    const confirmHeading=make("h2");confirmHeading.id="op-confirm-heading";
+    const confirmBody=make("p"),confirmActions=make("div","","form-actions");
+    const confirmCancel=button("취소",()=>confirmDialog.close("cancel"));
+    const confirmProceed=button("확인",()=>confirmDialog.close("confirm"));
+    confirmActions.append(confirmCancel,confirmProceed);confirmDialog.append(confirmHeading,confirmBody,confirmActions);
+    async function confirmAction(title,description,action){
+      if(confirmDialog.open || working)return false;
+      confirmHeading.textContent=title;confirmBody.textContent=description;confirmProceed.textContent=action;
+      confirmDialog.returnValue="";
+      return new Promise(resolve=>{
+        confirmDialog.addEventListener("close",()=>resolve(confirmDialog.returnValue==="confirm"),{once:true});
+        confirmDialog.showModal();confirmCancel.focus();
+      });
+    }
     const renameDialog=make("dialog","","bowone-op-rename");
     renameDialog.setAttribute("aria-labelledby","op-rename-heading");
     const renameForm=make("form"), renameHeading=make("h2","카드 파일명 수정");
@@ -47,6 +64,9 @@
     const renameInput=make("input");
     renameInput.type="text"; renameInput.required=true; renameInput.maxLength=240;
     renameInput.autocomplete="off"; renameInput.spellcheck=false;
+    const cardDescription=make("textarea");cardDescription.rows=3;cardDescription.maxLength=5000;
+    const cardUrl=make("input");cardUrl.type="url";cardUrl.placeholder="https://…";
+    const cardNameField=label("새 파일명",renameInput),cardUrlField=label("링크 주소",cardUrl);
     const renameHelp=make("p","","bowone-op-rename-help");
     renameHelp.id="op-rename-help"; renameInput.setAttribute("aria-describedby",renameHelp.id);
     const renameStatus=make("p","","bowone-op-rename-status");
@@ -56,16 +76,21 @@
     const renameSave=make("button","파일명 저장","button button-white");
     renameSave.type="submit";
     renameActions.append(renameCancel,renameSave);
-    renameForm.append(renameHeading,label("새 파일명",renameInput),renameHelp,renameStatus,renameActions);
+    renameForm.append(renameHeading,cardNameField,cardUrlField,label("카드 설명",cardDescription),renameHelp,renameStatus,renameActions);
     renameDialog.append(renameForm);
     let renaming=null;
     function openRename(item){
-      if(!admin || !ready || pending.size || !item?.opId || !item.sourcePath || renameDialog.open)return;
-      const filename=item.sourcePath.split("/").at(-1);
+      if(!admin || !ready || pending.size || !item || !item.opId&&!item.inboxId&&!item.newLink || renameDialog.open)return;
+      const filename=item.sourcePath?.split("/").at(-1)||"";
       const suffix=filename.match(/\.[^.]+$/)?.[0]||"";
       renaming=item;
-      renameInput.value=suffix?filename.slice(0,-suffix.length):filename;
-      renameHelp.textContent=(suffix?suffix+" 확장자는 유지됩니다. ":"")+"같은 이름이 있으면 (1), (2) 순으로 붙습니다.";
+      renameInput.value=filename?(suffix?filename.slice(0,-suffix.length):filename):item.title||"";
+      renameHeading.textContent=filename?"카드 파일명 수정":item.newLink?"링크 카드 추가":"링크 카드 수정";
+      cardNameField.firstElementChild.textContent=filename?"새 파일명":"카드 제목";
+      cardDescription.value=item.desc||"";cardUrl.value=item.url||"";
+      cardUrlField.hidden=!!filename;cardUrl.required=!filename;
+      renameSave.textContent=filename?"파일명 저장":item.newLink?"카드 추가":"카드 정보 저장";
+      renameHelp.textContent=filename?(suffix?suffix+" 확장자는 유지됩니다. ":"")+"같은 이름이 있으면 (1), (2) 순으로 붙습니다.":item.newLink?"공통 미등록 목록에 추가됩니다. 이후 원하는 항목에 등록하세요.":"링크의 제목·설명·주소가 구버전과 신버전에 함께 저장됩니다.";
       renameStatus.textContent="";
       renameDialog.showModal();
       renameInput.focus();renameInput.select();
@@ -83,16 +108,16 @@
       if(!renaming || pending.size)return;
       const name=renameInput.value.trim();
       if(!name){renameStatus.textContent="새 파일명을 입력해 주세요.";renameInput.focus();return;}
-      renameSave.disabled=renameCancel.disabled=renameInput.disabled=true;
-      renameStatus.textContent="GitHub 파일명과 카드 정보 저장 중…";
+      renameSave.disabled=renameCancel.disabled=renameInput.disabled=cardDescription.disabled=cardUrl.disabled=true;
+      renameStatus.textContent="카드 정보 저장 중…";
       try{
-        const {opId:id,sourcePath}=renaming;
-        if(await run("rename",{id,sourcePath,name},renameStatus.textContent))renameDialog.close();
+        const {opId:id,inboxId,sourcePath,newLink}=renaming;
+        if(await run(newLink?"addLink":"edit",{id,inboxId,sourcePath,name,title:name,desc:cardDescription.value,url:cardUrl.value},renameStatus.textContent))renameDialog.close();
         else{
           renameStatus.textContent=status.textContent;
           renameInput.disabled=false;renameInput.focus();
         }
-      }finally{renameSave.disabled=renameCancel.disabled=renameInput.disabled=false;}
+      }finally{renameSave.disabled=renameCancel.disabled=renameInput.disabled=cardDescription.disabled=cardUrl.disabled=false;}
     });
     const bar = make("div","","bowone-op-bar");
     const status = make("span","관리자 연결 확인 중","bowone-op-status");
@@ -116,7 +141,15 @@
     });
     const selectNone=button("선택 해제",()=>{chosen.clear();refreshSelection();});
     const recoverSelection=button("선택 카드 미등록으로",()=>recoverCards([...chosen]));
-    selectionTools.append(selectMode,selectCount,selectAll,selectNone,recoverSelection);
+    const moveTarget=make("select");moveTarget.setAttribute("aria-label","선택 카드를 옮길 항목");
+    const moveSelection=button("선택 카드 이동",()=>transferCards([...chosen],[],moveTarget.value));
+    const deleteSelection=button("선택 카드 영구 삭제",()=>deleteCards([...chosen],[]));
+    deleteSelection.classList.add("op-delete");
+    const recoverCategory=button("현재 분야 모두 회수",async()=>{
+      const ids=view.currentGroupCards();
+      if(ids.length && await confirmAction("현재 분야 모두 회수","현재 분야의 "+ids.length+"개 카드를 모두 미등록으로 옮깁니다. 원본은 삭제하지 않습니다.","미등록으로 옮기기"))recoverCards(ids);
+    });
+    selectionTools.append(selectMode,selectCount,selectAll,selectNone,recoverSelection,moveTarget,moveSelection,deleteSelection,recoverCategory);
     selectionTools.hidden=true;bar.append(selectionTools);
     const panel = make("aside","","bowone-op-panel");
     panel.id = "bowone-op-panel"; panel.hidden = true; panel.setAttribute("aria-label","카드 등록 및 문구 편집");
@@ -132,12 +165,21 @@
       if (files.length) await run("upload",{files},"미등록 파일 업로드 중…");
     });
     const refresh = button("새로고침",()=>run("refresh",{},"미등록 목록 확인 중…"));
-    const tools = make("div","","bowone-op-tools"); tools.append(upload,refresh,fileInput);
+    const newLink=button("링크 카드 추가",()=>openRename({newLink:true}));
+    const tools = make("div","","bowone-op-tools"); tools.append(upload,newLink,refresh,fileInput);
     const target = make("select");
+    target.setAttribute("aria-label","등록할 항목");
     const list = make("ul","","bowone-op-list");
     const inboxHeading = make("h3","미등록 카드 · Null_card");
+    const inboxTools=make("div","","bowone-op-tools");
+    const inboxCount=make("span","선택 0장");inboxCount.setAttribute("role","status");
+    const inboxAll=button("전체 선택",()=>{inbox.forEach(row=>inboxChosen.add(row.id));refreshSelection();});
+    const inboxNone=button("선택 해제",()=>{inboxChosen.clear();refreshSelection();});
+    const inboxRegister=button("선택 카드 등록",()=>transferCards([],[...inboxChosen],target.value));
+    const inboxDelete=button("선택 카드 삭제",()=>deleteCards([],[...inboxChosen]));inboxDelete.classList.add("op-delete");
+    inboxTools.append(inboxCount,inboxAll,inboxNone,inboxRegister,inboxDelete);
     const dropZone = make("section","","bowone-op-inbox");
-    dropZone.append(inboxHeading,make("p","파일을 섹션에 끌어놓거나 등록할 항목을 선택하세요. 등록된 카드를 여기로 끌어오면 회수됩니다."),tools,label("등록할 항목",target),list);
+    dropZone.append(inboxHeading,make("p","선택 후 한 번에 등록·삭제할 수 있습니다. 파일을 섹션으로 끌어 등록하거나, 등록된 카드를 이곳으로 끌어 회수하세요."),tools,label("등록할 항목",target),inboxTools,list);
     const allowInboxDrop=event=>{
       if (!admin || !event.dataTransfer.types.includes(mime)) return;
       event.preventDefault(); event.dataTransfer.dropEffect="move"; dropZone.classList.add("op-drop-active");
@@ -175,7 +217,7 @@
     });
     panel.append(title,inspector,dropZone);
     document.body.prepend(bar,panel);
-    document.body.append(renameDialog);
+    document.body.append(renameDialog,confirmDialog);
     document.documentElement.classList.add("bowone-op-view");
     new ResizeObserver(()=>document.documentElement.style.setProperty("--op-bar-height",bar.offsetHeight+"px")).observe(bar);
     const setOpen = open => {
@@ -213,9 +255,9 @@
     function dragSource(el,kind,id) {
       el.draggable=true;
       el.addEventListener("dragstart",event=>{
-        if (!admin) {event.preventDefault();return;}
+        if (!admin || working || !ready) {event.preventDefault();return;}
         event.dataTransfer.effectAllowed="move";
-        event.dataTransfer.setData(mime,JSON.stringify({kind,id}));
+        event.dataTransfer.setData(mime,JSON.stringify({kind,id,ids:kind==="inbox"&&inboxChosen.has(id)?[...inboxChosen]:[id]}));
         event.dataTransfer.setData("text/plain","BOWONE 카드");
       });
     }
@@ -223,14 +265,38 @@
       selectionTools.hidden=!admin;
       selectMode.setAttribute("aria-pressed",String(selectionMode));
       selectCount.textContent="선택 "+chosen.size+"장";
-      selectNone.disabled=recoverSelection.disabled=working || !chosen.size || !ready;
-      selectAll.disabled=selectMode.disabled=working || !ready;
+      for(const control of [selectNone,recoverSelection,moveTarget,moveSelection,deleteSelection])control.hidden=!selectionMode&&!chosen.size;
+      selectNone.disabled=recoverSelection.disabled=moveSelection.disabled=deleteSelection.disabled=working || !chosen.size || !ready;
+      selectAll.disabled=selectMode.disabled=recoverCategory.disabled=moveTarget.disabled=working || !ready;
+      inboxCount.textContent="선택 "+inboxChosen.size+"장";
+      inboxNone.disabled=inboxRegister.disabled=inboxDelete.disabled=working || !inboxChosen.size || !ready;
+      inboxAll.disabled=target.disabled=newLink.disabled=working || !ready;
+      for(const row of list.querySelectorAll(".bowone-op-row")){
+        const selected=inboxChosen.has(row.dataset.inboxId);
+        row.classList.toggle("op-card-selected",selected);
+        const check=row.querySelector('input[type="checkbox"]');if(check)check.checked=selected;
+        row.querySelectorAll("input,button").forEach(control=>{control.disabled=working||!ready;});
+      }
       document.documentElement.classList.toggle("op-selection-mode",admin && selectionMode);
       for(const el of document.querySelectorAll("#work-sections [data-op-card]")){
         const checked=chosen.has(el.dataset.opCard),input=el.querySelector(".bowone-op-select input");
         el.classList.toggle("op-card-selected",checked);
         if(input){input.checked=checked;input.disabled=working || !ready;}
-        for(const control of el.querySelectorAll(".bowone-op-return,.bowone-op-grip"))control.disabled=working || !ready;
+        for(const control of el.querySelectorAll(".bowone-op-card-actions button,.bowone-op-grip"))control.disabled=working || !ready;
+      }
+    }
+    async function transferCards(ids,inboxIds,grid,before="",after=false){
+      if(working || !grid || !ids.length&&!inboxIds.length)return;
+      if(await run("transfer",{ids,inboxIds,grid,before,after},(ids.length+inboxIds.length)+"개 카드를 이동하는 중…")){
+        ids.forEach(id=>chosen.delete(id));inboxIds.forEach(id=>inboxChosen.delete(id));refreshSelection();
+      }
+    }
+    async function deleteCards(ids,inboxIds){
+      if(working || !ids.length&&!inboxIds.length)return;
+      if(ids.length+inboxIds.length>400){status.textContent="한 번에 최대 400장까지 삭제할 수 있습니다.";return;}
+      if(!await confirmAction("카드 영구 삭제","선택한 "+(ids.length+inboxIds.length)+"개 카드의 GitHub 원본 파일과 카드 기록이 함께 삭제됩니다. 링크 카드는 기록만 삭제합니다. 화면에서만 빼려면 취소 후 ‘미등록으로’를 사용하세요.","영구 삭제"))return;
+      if(await run("remove",{ids,inboxIds},"원본 파일과 카드 기록 삭제 중…")){
+        ids.forEach(id=>chosen.delete(id));inboxIds.forEach(id=>inboxChosen.delete(id));refreshSelection();
       }
     }
     async function recoverCards(ids){
@@ -244,8 +310,7 @@
       if(working || !admin || !ready)return;
       const preview=view.reorderCards(grid,ids,before,after);
       if(!preview){
-        if(ids.length===1)await run("arrange",{id:ids[0],grid,before,after},"카드 위치를 변경하는 중…");
-        else status.textContent="여러 장 정렬은 같은 섹션 안에서 가능합니다. 섹션 간 이동은 한 장씩 옮겨 주세요.";
+        await transferCards(ids,[],grid,before,after);
         return;
       }
       if(preview.order.every((id,index)=>id===preview.previous[index]))return;
@@ -264,12 +329,12 @@
     const editor = {
       refresh:refreshSelection,
       title(el,item) {
-        if(!admin || !item?.opId || !item.sourcePath)return;
-        const name=item.sourcePath.split("/").at(-1);
+        if(!admin || !item?.opId)return;
+        const name=item.sourcePath?.split("/").at(-1)||item.title;
         const control=make("button",name,"bowone-op-file-title");
         control.type="button";
-        control.title="더블클릭하여 파일명 수정";
-        control.setAttribute("aria-label",name+" 파일명 수정");
+        control.title="더블클릭하여 카드 정보 수정";
+        control.setAttribute("aria-label",name+(item.sourcePath?" 파일명 수정":" 카드 정보 수정"));
         control.addEventListener("dblclick",event=>{
           event.preventDefault();
           openRename(item);
@@ -305,7 +370,11 @@
         el.prepend(selection,grip);
         const back=button("미등록으로",()=>recoverCards(chosen.has(item.opId)?[...chosen]:[item.opId]));
         back.classList.add("bowone-op-return");
-        el.querySelector(".work-info")?.append(back);
+        const actions=make("div","","bowone-op-card-actions");
+        actions.append(button("수정",()=>openRename(item)),back,button("이동",()=>{
+          chosen.add(item.opId);refreshSelection();moveTarget.focus();status.textContent="상단에서 옮길 항목을 고르고 ‘선택 카드 이동’을 누르세요.";
+        }),button("삭제",()=>deleteCards([item.opId],[])));
+        el.querySelector(".work-info")?.append(actions);
       },
     };
     let pressed=null,dragging=null,dragFrame=0;
@@ -408,7 +477,7 @@
       if (!admin || !card) return;
       event.preventDefault();
       const before = event.target.closest("[data-op-card]")?.dataset.opCard || "";
-      if(card.kind==="inbox")run("assign",{id:card.id,grid:grid.dataset.opGrid,before},"카드 등록 중…");
+      if(card.kind==="inbox")void transferCards([],Array.isArray(card.ids)?card.ids:[card.id],grid.dataset.opGrid,before);
       else void reorderCards(grid.dataset.opGrid,Array.isArray(card.ids)?card.ids:[card.id],before);
     });
     function renderInbox() {
@@ -417,11 +486,19 @@
       if (!inbox.length) {list.append(make("li","미등록 카드 없음"));return;}
       for (const item of inbox) {
         const row = make("li","","bowone-op-row");
+        row.dataset.inboxId=item.id;
+        const check=make("input");check.type="checkbox";check.checked=inboxChosen.has(item.id);check.setAttribute("aria-label",item.title+" 선택");
+        check.addEventListener("change",()=>{if(check.checked)inboxChosen.add(item.id);else inboxChosen.delete(item.id);refreshSelection();});
+        row.append(check);
+        const preview=button("",()=>view.previewInbox(item,preview));preview.classList.add("bowone-op-inbox-preview");preview.setAttribute("aria-label",item.title+" 미리보기");
         if (item.preview) {
           const image=make("img"); image.alt=""; image.src=item.preview; image.loading="lazy"; image.draggable=false;
-          image.addEventListener("error",()=>image.remove(),{once:true}); row.append(image);
-        }
-        row.append(make("span",item.title),button("등록",()=>run("assign",{id:item.id,grid:target.value},"카드 등록 중…")));
+          image.addEventListener("error",()=>{image.remove();preview.textContent="보기";},{once:true}); preview.append(image);
+        }else preview.textContent=item.type==="video"?"▶":"↗";
+        const info=make("div","","bowone-op-inbox-info"),name=button(item.title,()=>openRename({...item,inboxId:item.id}));name.className="bowone-op-file-title";
+        const actions=make("div","","bowone-op-row-actions");
+        actions.append(button("등록",()=>transferCards([],inboxChosen.has(item.id)?[...inboxChosen]:[item.id],target.value)),button("수정",()=>openRename({...item,inboxId:item.id})),button("삭제",()=>deleteCards([],inboxChosen.has(item.id)?[...inboxChosen]:[item.id])));
+        info.append(name,actions);row.append(preview,info);
         dragSource(row,"inbox",item.id);
         list.append(row);
       }
@@ -471,9 +548,10 @@
       save.hidden=panelToggle.hidden=!admin;
       save.disabled=upload.disabled=refresh.disabled=!admin || !ready || !!pending.size;
       if (!admin) {
-        gesture.cancel();chosen.clear();selectionMode=false;refreshSelection();
+        gesture.cancel();chosen.clear();inboxChosen.clear();selectionMode=false;refreshSelection();
         setOpen(false);
         if(renameDialog.open)renameDialog.close();
+        if(confirmDialog.open)confirmDialog.close("cancel");
         if(wasAdmin){
           view.disableEditor();view.resetCatalog();catalogRevision=undefined;settingsRevision=undefined;
           if(!view.getPublishedCatalog().editorSettings)fields.replace(baseSettings);
@@ -487,9 +565,11 @@
         setOpen(matchMedia("(min-width: 1100px)").matches);
         status.textContent="문구나 카드 파일명을 더블클릭해 편집하세요.";
       }
-      if (data.grids && !target.options.length) for (const [id,name] of data.grids) target.add(new Option(name,id));
+      if (data.grids && !target.options.length) for (const [id,name] of data.grids){target.add(new Option(name,id));moveTarget.add(new Option(name,id));}
       if (Array.isArray(data.inbox) && data.inboxRevision !== inboxRevision) {
-        inboxRevision=data.inboxRevision; inbox=data.inbox; renderInbox();
+        inboxRevision=data.inboxRevision; inbox=data.inbox;
+        const valid=new Set(inbox.map(row=>row.id));for(const id of inboxChosen)if(!valid.has(id))inboxChosen.delete(id);
+        renderInbox();
       }
       if (data.catalog && data.catalogRevision !== catalogRevision) {
         const valid=new Set(Object.values(data.catalog.portfolio||{}).flatMap(rows=>rows.map(row=>row.opId)));

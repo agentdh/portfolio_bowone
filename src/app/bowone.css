@@ -105,7 +105,16 @@ body.viewer-open { overflow: hidden; }
 .bowone-op-row { display: flex; align-items: center; gap: 8px; padding-block: 7px; border-top: 1px solid var(--line); cursor: grab; }
 .bowone-op-row img { width: 52px; height: 38px; object-fit: contain; background: var(--media-base); }
 .bowone-op-row span { flex: 1; overflow-wrap: anywhere; font-size: 12px; }
-.bowone-op-return { margin-top: 7px; }
+.bowone-op-panel .bowone-op-row input[type="checkbox"] { width: 18px; min-width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.bowone-op-row .bowone-op-inbox-preview { flex: 0 0 52px; min-height: 42px; padding: 0; overflow: hidden; }
+.bowone-op-inbox-info { flex: 1; min-width: 0; }
+.bowone-op-inbox-info .bowone-op-file-title { font-size: 12px; white-space: normal; }
+.bowone-op-row-actions, .bowone-op-card-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.bowone-op-card-actions .button { min-height: 34px; padding: 5px 9px; font-size: 12px; }
+.bowone-op-tools > span { flex-basis: 100%; font-size: 12px; color: var(--accent-text); }
+.bowone-op-list .op-card-selected { background: var(--tint); outline: 1px solid var(--accent); outline-offset: 2px; }
+.bowone-op-selection-tools select { width: min(270px,100%); min-height: 34px; padding: 5px 8px; font-size: 12px; }
+.bowone-op-bar .op-delete, .bowone-op-panel .op-delete { border-color: var(--muted); }
 .bowone-op-selection-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; padding-top: 6px; border-top: 1px solid var(--line); }
 .bowone-op-selection-tools > span { min-width: 65px; font-size: 12px; color: var(--accent-text); }
 .bowone-op-selection-tools [aria-pressed="true"] { background: var(--accent); color: var(--paper); }
@@ -127,11 +136,14 @@ body.viewer-open { overflow: hidden; }
 .bowone-op-rename { width: min(calc(100% - 26px),460px); padding: 20px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .bowone-op-rename::backdrop { background: var(--viewer-overlay); }
 .bowone-op-rename form { display: grid; gap: 12px; }
-.bowone-op-rename .field input { width: 100%; }
+.bowone-op-rename .field :is(input,textarea) { width: 100%; }
 .bowone-op-rename-help, .bowone-op-rename-status { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .bowone-op-rename-status { color: var(--accent-text); }
 .bowone-op-rename-status:empty { display: none; }
 .bowone-op-rename .form-actions { justify-content: flex-end; }
+.bowone-op-confirm { display: none; }
+.bowone-op-confirm[open] { display: grid; gap: 16px; }
+.bowone-op-confirm p { line-height: 1.8; color: var(--muted); }
 .bowone-op-view .op-drop-active { outline: 2px solid var(--accent); outline-offset: -2px; }
 h1, h2, h3, p, figure, dl, dd { margin: 0; }
 h1, h2, h3 { line-height: 1.16; word-break: keep-all; }
