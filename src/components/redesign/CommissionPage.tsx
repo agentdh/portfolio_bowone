@@ -1,10 +1,14 @@
 import CommissionGuide, { QuickCommissionTemplate } from "./CommissionGuide";
 import DiscordIcon from "./DiscordIcon";
+import ContactChannels from "./ContactChannels";
 
 export default function CommissionPage() {
   return (
     <div data-page="commissions" hidden>
       <section className="wrap inner-page commission-page" id="commissions" aria-labelledby="commissions-title">
+        <div className="commission-contacts-top" data-arrival="">
+          <ContactChannels showEmailHeading />
+        </div>
         <div className="commission-masthead" data-arrival="">
           <div><p className="index-label">03 / COMMISSIONS</p><h1 id="commissions-title">작업을<br />의뢰하려면<span>.</span></h1><p>제작 범위와 사용 목적을 알려주시면 견적과 일정을 안내합니다.</p></div>
           <nav aria-label="의뢰 페이지 목차">
@@ -14,17 +18,6 @@ export default function CommissionPage() {
           </nav>
         </div>
 
-
-        <section className="commi-feature" aria-label="커미 러프퀄 커미션" data-arrival="">
-          <div className="commi-feature-copy">
-            <p className="index-label">COMMI / ROUGH COMMISSION</p>
-            <h2>5,000원부터, 뭐든지 러프퀄<span>.</span></h2>
-            <p>희망 금액에 맞춰 작업하는 러프·낙서 커미션입니다. 커미에서 바로 신청할 수 있습니다.</p>
-          </div>
-          <a className="button button-accent commi-feature-action" href="https://commi.kr/commission/2801" target="_blank" rel="noopener noreferrer" aria-label="커미에서 뭐든지 러프퀄 커미션 신청하기">
-            <span>커미에서 신청하기</span><span aria-hidden="true">↗</span>
-          </a>
-        </section>
 
         <section className="commission-block" id="pricing" aria-labelledby="pricing-title">
           <div className="section-heading editorial-heading" data-arrival=""><div><p className="index-label">01 / PRICING</p><h2 id="pricing-title">예상 비용 계산<span>.</span></h2></div><p>표시 금액은 작업 기준가입니다. 제작 범위와 이용 조건에 따라 최종 금액이 달라집니다.</p></div>

@@ -746,20 +746,16 @@ body[data-view="commissions"] .site-footer { margin-top: 0; }
 .archive-section .work-info { padding-inline: 3px; min-height: 50px; }
 
 
-.commi-feature {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: clamp(16px,3vw,44px); padding: clamp(20px,3.2vw,36px);
-  margin-top: 22px; background: var(--surface); border: 1px solid var(--line);
+
+/* Contact channel set reused on Home and at the very top of Commissions. */
+.contact-channels-email { font-size: 16px; color: var(--ink); line-height: 1.65; }
+.commission-contacts-top {
+  border-bottom: 1px solid var(--line);
+  padding: clamp(25px,4.5vw,54px) 0 clamp(34px,5vw,60px);
+  text-align: center;
 }
-.commi-feature-copy { min-width: 0; }
-.commi-feature h2 { margin: 7px 0 8px; font-size: clamp(22px,3vw,36px); line-height: 1.2; letter-spacing: -.055em; }
-.commi-feature h2 span { color: var(--accent); }
-.commi-feature-copy > p:last-child { color: var(--muted); font-size: 13px; line-height: 1.65; word-break: keep-all; }
-.commi-feature-action { flex: 0 0 auto; min-width: 162px; }
-@media (max-width: 700px) {
-  .commi-feature { flex-direction: column; align-items: stretch; }
-  .commi-feature-action { align-self: flex-start; }
-}
+.commission-contacts-top .artist-intro-actions { margin-top: 20px; }
+.commission-contacts-top .artist-intro-socials { margin-top: 20px; }
 
 .commission-masthead { display: grid; grid-template-columns: minmax(0,1fr) minmax(270px,.72fr); gap: clamp(25px,7vw,125px); align-items: end; border-block: 1px solid var(--line); padding-block: clamp(24px,4vw,56px); }
 .commission-masthead p:not(.index-label) { margin-top: 16px; }

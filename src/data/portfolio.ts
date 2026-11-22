@@ -92,7 +92,7 @@ export const ARTIST_PROFILE = {
     { name: 'X (Twitter)', handle: '@bowone_agentdh', url: 'https://x.com/bowone_agentdh' },
     { name: '크레페', handle: 'Crepe', url: 'https://crepe.cm/@agentdh' },
     { name: '아트머그', handle: 'Artmug', url: 'https://artmug.kr/index.php?channel=list&field=brand&search=YWdlbnRkaA==' },
-    { name: '커미', handle: 'Commi', url: 'https://commi.kr/commission/2801' },
+    { name: '커미', handle: 'Commi', url: 'https://commi.kr/agentdh' },
     { name: 'YouTube', handle: '@agentdh', url: 'https://www.youtube.com/@agentdh' },
     { name: 'Instagram', handle: '@agentdhone', url: 'https://www.instagram.com/agentdhone/' },
   ],
