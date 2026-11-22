@@ -16,6 +16,9 @@
     const origin = parentOrigin();
     if (!origin) return;
     const pending = new Map();
+    const {createPressDrag}=require("./card-sort.cjs");
+    const chosen=new Set();
+    let selectionMode=false,working=false;
     let sequence = 0, admin = false, ready = false, selected = "", inbox = [], initialized = false;
     let catalogRevision, settingsRevision, inboxRevision, draft = false;
     const baseSettings = fields.snapshot();
@@ -103,6 +106,18 @@
     const panelToggle = button("카드 등록",()=>setOpen(panel.hidden));
     panelToggle.setAttribute("aria-controls","bowone-op-panel");
     bar.append(make("strong","관리자 패널"),login,save,panelToggle,versions,status);
+    const selectionTools=make("div","","bowone-op-selection-tools");
+    selectionTools.setAttribute("role","group");selectionTools.setAttribute("aria-label","카드 일괄 조작");
+    const selectMode=button("카드 선택",()=>{selectionMode=!selectionMode;refreshSelection();});
+    const selectCount=make("span","선택 0장");
+    const selectAll=button("현재 목록 모두 선택",()=>{
+      for(const el of document.querySelectorAll("#work-sections [data-op-card]"))if(el.getClientRects().length)chosen.add(el.dataset.opCard);
+      refreshSelection();
+    });
+    const selectNone=button("선택 해제",()=>{chosen.clear();refreshSelection();});
+    const recoverSelection=button("선택 카드 미등록으로",()=>recoverCards([...chosen]));
+    selectionTools.append(selectMode,selectCount,selectAll,selectNone,recoverSelection);
+    selectionTools.hidden=true;bar.append(selectionTools);
     const panel = make("aside","","bowone-op-panel");
     panel.id = "bowone-op-panel"; panel.hidden = true; panel.setAttribute("aria-label","카드 등록 및 문구 편집");
     const title = make("div","","bowone-op-panel-head");
@@ -135,7 +150,7 @@
       const card = dragValue(event);
       if (card?.kind !== "card") return;
       event.preventDefault(); event.stopPropagation();
-      run("recover",{id:card.id},"미등록 카드로 회수 중…");
+      recoverCards(Array.isArray(card.ids)?card.ids:[card.id]);
     });
     const inspector = make("section","","bowone-op-inspector");
     inspector.hidden = true;
@@ -204,7 +219,50 @@
         event.dataTransfer.setData("text/plain","BOWONE 카드");
       });
     }
+    function refreshSelection(){
+      selectionTools.hidden=!admin;
+      selectMode.setAttribute("aria-pressed",String(selectionMode));
+      selectCount.textContent="선택 "+chosen.size+"장";
+      selectNone.disabled=recoverSelection.disabled=working || !chosen.size || !ready;
+      selectAll.disabled=selectMode.disabled=working || !ready;
+      document.documentElement.classList.toggle("op-selection-mode",admin && selectionMode);
+      for(const el of document.querySelectorAll("#work-sections [data-op-card]")){
+        const checked=chosen.has(el.dataset.opCard),input=el.querySelector(".bowone-op-select input");
+        el.classList.toggle("op-card-selected",checked);
+        if(input){input.checked=checked;input.disabled=working || !ready;}
+        for(const control of el.querySelectorAll(".bowone-op-return,.bowone-op-grip"))control.disabled=working || !ready;
+      }
+    }
+    async function recoverCards(ids){
+      if(!ids.length || working)return;
+      if(ids.length>400){status.textContent="한 번에 최대 400장까지 선택해 주세요.";return;}
+      if(await run("recover",{ids},ids.length+"개 카드를 미등록으로 옮기는 중…")){
+        ids.forEach(id=>chosen.delete(id));refreshSelection();
+      }
+    }
+    async function reorderCards(grid,ids,before="",after=false){
+      if(working || !admin || !ready)return;
+      const preview=view.reorderCards(grid,ids,before,after);
+      if(!preview){
+        if(ids.length===1)await run("arrange",{id:ids[0],grid,before,after},"카드 위치를 변경하는 중…");
+        else status.textContent="여러 장 정렬은 같은 섹션 안에서 가능합니다. 섹션 간 이동은 한 장씩 옮겨 주세요.";
+        return;
+      }
+      if(preview.order.every((id,index)=>id===preview.previous[index]))return;
+      if(!await run("arrange",{id:ids[0],ids,grid,order:preview.order},"카드 순서를 반영하는 중…"))
+        view.restoreCardOrder(grid,preview.previous);
+    }
+    document.addEventListener("click",event=>{
+      if(event.detail>0 && gesture.takeClick()){event.preventDefault();event.stopImmediatePropagation();return;}
+      const card=event.target.closest("#work-sections [data-op-card]");
+      if(!admin || !card || !event.target.closest(".work-media") || !(selectionMode || event.ctrlKey || event.metaKey))return;
+      event.preventDefault();event.stopImmediatePropagation();
+      if(working)return;
+      if(chosen.has(card.dataset.opCard))chosen.delete(card.dataset.opCard);else chosen.add(card.dataset.opCard);
+      refreshSelection();
+    },true);
     const editor = {
+      refresh:refreshSelection,
       title(el,item) {
         if(!admin || !item?.opId || !item.sourcePath)return;
         const name=item.sourcePath.split("/").at(-1);
@@ -224,12 +282,111 @@
       card(el,item) {
         if (!admin) return;
         el.dataset.opCard=item.opId;
-        dragSource(el,"card",item.opId);
-        const back=button("미등록으로",()=>run("recover",{id:item.opId},"미등록 카드로 회수 중…"));
+        el.draggable=false;
+        el.querySelectorAll("img").forEach(image=>{image.draggable=false;});
+        const check=make("input");check.type="checkbox";
+        check.setAttribute("aria-label",(item.sourcePath?.split("/").at(-1)||item.title||"카드")+" 선택");
+        check.checked=chosen.has(item.opId);
+        check.addEventListener("change",()=>{if(check.checked)chosen.add(item.opId);else chosen.delete(item.opId);refreshSelection();});
+        const selection=make("label","","bowone-op-select");
+        selection.append(check,make("span","선택"));
+        const grip=button("↕",()=>{});
+        grip.classList.add("bowone-op-grip");grip.title="누른 채 끌어서 순서 이동 · 방향키로도 이동";
+        grip.setAttribute("aria-label",(item.sourcePath?.split("/").at(-1)||item.title||"카드")+" 순서 이동");
+        grip.addEventListener("keydown",event=>{
+          if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"].includes(event.key))return;
+          event.preventDefault();
+          const grid=el.closest(".work-grid"),rows=[...grid.children].filter(row=>row.dataset.opCard);
+          const cols=getComputedStyle(grid).gridTemplateColumns.split(" ").length,at=rows.indexOf(el);
+          const step=event.key==="ArrowUp"?-cols:event.key==="ArrowDown"?cols:event.key==="ArrowLeft"?-1:1;
+          const target=event.key==="Home"?0:event.key==="End"?rows.length-1:Math.max(0,Math.min(rows.length-1,at+step));
+          void reorderCards(grid.dataset.opGrid,[item.opId],rows[target].dataset.opCard,target>at);
+        });
+        el.prepend(selection,grip);
+        const back=button("미등록으로",()=>recoverCards(chosen.has(item.opId)?[...chosen]:[item.opId]));
         back.classList.add("bowone-op-return");
         el.querySelector(".work-info")?.append(back);
       },
     };
+    let pressed=null,dragging=null,dragFrame=0;
+    function clearDrag(){
+      cancelAnimationFrame(dragFrame);dragFrame=0;
+      dragging?.ghost.remove();dragging=null;
+      if(pressed?.el.hasPointerCapture?.(pressed.pointerId))pressed.el.releasePointerCapture(pressed.pointerId);
+      pressed=null;
+      document.documentElement.classList.remove("op-card-dragging");
+      document.querySelectorAll(".op-drag-source,.op-insert-before,.op-insert-after,.op-drop-active").forEach(el=>{
+        el.classList.remove("op-drag-source","op-insert-before","op-insert-after","op-drop-active");
+      });
+    }
+    function dropAt(point){
+      const hit=document.elementFromPoint(point.x,point.y);
+      const unassigned=hit?.closest(".bowone-op-inbox");
+      if(unassigned)return {inbox:unassigned};
+      const grid=hit?.closest("[data-op-grid]");
+      if(!grid)return null;
+      const card=hit.closest("[data-op-card]");
+      const rect=card?.getBoundingClientRect();
+      return {grid:grid.dataset.opGrid,element:grid,card,before:card?.dataset.opCard||"",after:!!rect && (point.y>rect.bottom || point.x>rect.left+rect.width/2)};
+    }
+    function drawDrag(){
+      if(!dragging)return;
+      const point=dragging.point,hit=dropAt(point);
+      dragging.ghost.style.transform="translate("+Math.round(point.x+16)+"px,"+Math.round(point.y+16)+"px)";
+      document.querySelectorAll(".op-insert-before,.op-insert-after,.op-drop-active").forEach(el=>el.classList.remove("op-insert-before","op-insert-after","op-drop-active"));
+      if(hit?.inbox)hit.inbox.classList.add("op-drop-active");
+      else if(hit?.card && !pressed.ids.includes(hit.before))hit.card.classList.add(hit.after?"op-insert-after":"op-insert-before");
+      else if(hit?.element)hit.element.classList.add("op-drop-active");
+      const scroll=document.elementFromPoint(point.x,point.y)?.closest(".scroll-gallery,.bowone-op-panel");
+      let scrolled=false;
+      if(scroll){
+        const rect=scroll.getBoundingClientRect(),old=scroll.scrollTop;
+        if(point.y<rect.top+48)scroll.scrollTop-=12;
+        else if(point.y>rect.bottom-48)scroll.scrollTop+=12;
+        scrolled=scroll.scrollTop!==old;
+      }
+      if(!scrolled){
+        if(point.y<90)window.scrollBy(0,-12);
+        else if(point.y>innerHeight-70)window.scrollBy(0,12);
+      }
+      dragFrame=requestAnimationFrame(drawDrag);
+    }
+    const gesture=createPressDrag({
+      start(point){
+        if(!pressed || working || !admin)return;
+        pressed.el.setPointerCapture?.(point.pointerId);
+        const ghost=make("div",pressed.ids.length+"장 이동","bowone-op-drag-ghost");
+        document.body.append(ghost);dragging={ghost,point};
+        document.documentElement.classList.add("op-card-dragging");
+        document.querySelectorAll("[data-op-card]").forEach(el=>{if(pressed.ids.includes(el.dataset.opCard))el.classList.add("op-drag-source");});
+        window.getSelection()?.removeAllRanges();
+        dragFrame=requestAnimationFrame(drawDrag);
+      },
+      move(point){if(dragging)dragging.point=point;},
+      drop(point){
+        const destination=dropAt(point),ids=pressed?.ids||[];
+        clearDrag();
+        if(destination?.inbox){void recoverCards(ids);return;}
+        if(destination?.grid)void reorderCards(destination.grid,ids,destination.before,destination.after);
+      },
+      cancel:clearDrag,
+    });
+    document.addEventListener("pointerdown",event=>{
+      if(event.button===0)gesture.takeClick();
+      if(!admin || !ready || working || document.querySelector("dialog[open]"))return;
+      const el=event.target.closest("#work-sections [data-op-card]");
+      if(!el || !event.target.closest(".work-media,.bowone-op-grip") || (event.pointerType==="touch" && !event.target.closest(".bowone-op-grip")))return;
+      if(gesture.down(event))pressed={el,pointerId:event.pointerId,ids:chosen.has(el.dataset.opCard)?[...chosen]:[el.dataset.opCard]};
+    },true);
+    document.addEventListener("pointermove",event=>{if(gesture.move(event))event.preventDefault();},{passive:false,capture:true});
+    document.addEventListener("pointerup",event=>{if(gesture.up(event))event.preventDefault();else if(!gesture.active)pressed=null;},true);
+    document.addEventListener("pointercancel",()=>{gesture.cancel();pressed=null;},true);
+    document.addEventListener("keydown",event=>{if(event.key==="Escape"){gesture.cancel();pressed=null;}});
+    window.addEventListener("blur",()=>{gesture.cancel();pressed=null;});
+    document.addEventListener("click",event=>{if(event.detail>0 && gesture.takeClick()){event.preventDefault();event.stopImmediatePropagation();}},true);
+    document.addEventListener("dragstart",event=>{
+      if(admin && event.target.closest("#work-sections [data-op-card]"))event.preventDefault();
+    },true);
     const allowGridDrop=event=>{
       if (!admin || !event.dataTransfer.types.includes(mime)) return;
       const grid = event.target.closest("[data-op-grid]");
@@ -251,7 +408,8 @@
       if (!admin || !card) return;
       event.preventDefault();
       const before = event.target.closest("[data-op-card]")?.dataset.opCard || "";
-      run(card.kind==="inbox"?"assign":"arrange",{id:card.id,grid:grid.dataset.opGrid,before},"카드 이동 중…");
+      if(card.kind==="inbox")run("assign",{id:card.id,grid:grid.dataset.opGrid,before},"카드 등록 중…");
+      else void reorderCards(grid.dataset.opGrid,Array.isArray(card.ids)?card.ids:[card.id],before);
     });
     function renderInbox() {
       list.replaceChildren();
@@ -271,6 +429,7 @@
     async function run(action,args,message) {
       if (!admin || !ready || pending.size) return false;
       const id = ++sequence;
+      working=true;refreshSelection();
       save.disabled = upload.disabled = refresh.disabled = true;
       status.textContent = message;
       try {
@@ -285,6 +444,7 @@
         status.textContent = error.message || "변경사항을 반영하지 못했습니다.";
         return false;
       } finally {
+        working=false;refreshSelection();
         save.disabled = upload.disabled = refresh.disabled = !admin || !ready;
       }
     }
@@ -311,6 +471,7 @@
       save.hidden=panelToggle.hidden=!admin;
       save.disabled=upload.disabled=refresh.disabled=!admin || !ready || !!pending.size;
       if (!admin) {
+        gesture.cancel();chosen.clear();selectionMode=false;refreshSelection();
         setOpen(false);
         if(renameDialog.open)renameDialog.close();
         if(wasAdmin){
@@ -331,6 +492,8 @@
         inboxRevision=data.inboxRevision; inbox=data.inbox; renderInbox();
       }
       if (data.catalog && data.catalogRevision !== catalogRevision) {
+        const valid=new Set(Object.values(data.catalog.portfolio||{}).flatMap(rows=>rows.map(row=>row.opId)));
+        for(const id of chosen)if(!valid.has(id))chosen.delete(id);
         catalogRevision=data.catalogRevision; view.setCatalog(data.catalog);
         fields.replace(fields.snapshot());
       }
@@ -338,6 +501,7 @@
         settingsRevision=data.settingsRevision; fields.replace(data.settings);
       }
       if (!pending.size && data.error) status.textContent=data.error;
+      refreshSelection();
     }
     window.addEventListener("message",receive);
     save.hidden=panelToggle.hidden=true;

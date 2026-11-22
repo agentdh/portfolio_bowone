@@ -17,7 +17,8 @@ test("the public profile and contact actions sit between the hero and selected w
   assert.ok(intro, "Missing rendered profile block");
   assert.match(html, /<\/figure>\s*<\/section>\s*<section\b[^>]*\bid="artist-intro"[\s\S]*?<\/section>\s*<section\b[^>]*\bid="selected"/);
   assert.match(intro, /BOWONE/);
-  assert.match(intro, /discord\.gg\/EZhs87qRvU/);
+  const configuredContact=JSON.parse(readFileSync("src/data/portfolio.json","utf8")).profile.commissionLinkUrl;
+  assert.equal(intro.match(/<a\b[^>]*class="button button-accent"[^>]*href="([^"]+)"/)?.[1],configuredContact);
   assert.match(intro, /<button\b[^>]*\btype="button"[^>]*>[\s\S]*?agentdh@naver\.com/);
   for (const channel of ["X (Twitter)", "크레페", "아트머그", "YouTube", "Instagram"]) {
     assert.ok(intro.includes(channel), "Missing visible channel: " + channel);

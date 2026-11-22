@@ -105,6 +105,12 @@
     for(const item of items)if(item.sourcePath)byPath.set(item.sourcePath,item);
     return byPath;
   }
+  function sameCardContent(before,after){
+    if(before.length!==after.length || before.some(row=>!row.opId))return false;
+    const content=({id,order,...row})=>JSON.stringify(row);
+    const lookup=new Map(before.map(row=>[row.opId,content(row)]));
+    return lookup.size===before.length && after.every(row=>lookup.get(row.opId)===content(row));
+  }
   function queryText(value) {
     return txt(value).normalize("NFKC").toLocaleLowerCase("ko-KR").replace(/[_·]+/g," ");
   }
@@ -453,7 +459,13 @@
     const icon = make("span","image-open","↗");
     icon.setAttribute("aria-hidden","true");
     button.append(icon);
-    button.addEventListener("click",()=>openViewer(collection,index,button));
+    button.addEventListener("click",()=>{
+      if(editView && item.opId){
+        const latest=filterArchive(archive,state.group,state.sub,state.query).filter(row=>row.sub===item.sub);
+        const at=latest.findIndex(row=>row.opId===item.opId);
+        if(at>=0)openViewer(latest,at,button);
+      }else openViewer(collection,index,button);
+    });
     const info = make("div","work-info");
     const detail = make("div","work-info-line");
     detail.append(make("small","",item.label),make("span","mono",String(item.order).padStart(2,"0")));
@@ -583,6 +595,7 @@
     syncWorkMotion();
     observeArrival(root);
     requestAnimationFrame(()=>root.querySelectorAll(".scroll-gallery").forEach(measureGrid));
+    editView?.refresh?.();
   }
   $("work-sub").addEventListener("change",()=>{
     const sub=$("work-sub").value;
@@ -984,10 +997,13 @@
 
   function setCatalog(next){
     if(!next || !next.portfolio || typeof next.portfolio!=="object" || Array.isArray(next.portfolio))return;
+    const normalized=normalizeArchive(next.portfolio,DATA.showTitleByDefault!==false);
+    const orderOnly=!!editView && sameCardContent(archive,normalized);
+    const profileChanged=JSON.stringify(raw.profile)!==JSON.stringify(next.profile);
     raw=next;
     refreshedCatalog=true;
     window.portfolioData=raw.portfolio;
-    archive=normalizeArchive(raw.portfolio,DATA.showTitleByDefault!==false);
+    archive=normalized;
     if(editView && dialog.open && viewer.items[viewer.index]?.opId){
       const active=viewer.items[viewer.index];
       const byId=new Map(archive.filter(item=>item.opId).map(item=>[item.opId,item]));
@@ -999,6 +1015,28 @@
       }
     }
     featureCollections=featuredCollections();
+    if(orderOnly){
+      if(profileChanged){email=contactAddress(raw.profile);applyProfile(raw.profile||{});updateBrief();}
+      const byId=new Map(archive.map(row=>[row.opId,row]));
+      for(const grid of document.querySelectorAll("#work-sections .work-grid[data-op-grid]")){
+        const elements=[...grid.children].filter(el=>el.dataset.opCard);
+        const current=elements.map(el=>el.dataset.opCard);
+        elements.sort((a,b)=>byId.get(a.dataset.opCard).order-byId.get(b.dataset.opCard).order);
+        if(elements.some((el,index)=>el.dataset.opCard!==current[index])){
+          const top=grid.scrollTop;
+          const focus=grid.contains(document.activeElement)?document.activeElement:null;
+          for(const card of elements){
+            grid.append(card);
+            const counter=card.querySelector(".work-info-line .mono");
+            if(counter)counter.textContent=String(byId.get(card.dataset.opCard).order).padStart(2,"0");
+          }
+          grid.scrollTop=top;
+          focus?.focus({preventScroll:true});
+        }
+      }
+      editView.refresh?.();
+      return;
+    }
     email=contactAddress(raw.profile);
     applyProfile(raw.profile||{});
     updateBrief();
@@ -1006,6 +1044,7 @@
     renderGroupControls();
     updateSubfilters();
     if(state.route?.view==="works") renderArchive();
+    editView?.refresh?.();
   }
   async function refreshPublishedData(){
     if(DATA.catalogRefresh===false || !["http:","https:"].includes(location.protocol))return;
@@ -1043,6 +1082,23 @@
   const defaultEditorSettings=DATA.editorSettings;
   return {
     setCatalog,
+    reorderCards(grid,ids,before="",after=false){
+      const items=raw.portfolio[grid];
+      if(!editView || !Array.isArray(items))return null;
+      const previous=items.map(row=>row.opId);
+      if(ids.some(id=>!previous.includes(id)))return null;
+      const order=require("./card-sort.cjs").reorderKeys(previous,ids,before,after);
+      const byId=new Map(items.map(row=>[row.opId,row]));
+      setCatalog({...raw,portfolio:{...raw.portfolio,[grid]:order.map(id=>byId.get(id))}});
+      return {order,previous};
+    },
+    restoreCardOrder(grid,order){
+      const items=raw.portfolio[grid];
+      if(!Array.isArray(items) || items.length!==order.length)return;
+      const byId=new Map(items.map(row=>[row.opId,row]));
+      if(order.some(id=>!byId.has(id)))return;
+      setCatalog({...raw,portfolio:{...raw.portfolio,[grid]:order.map(id=>byId.get(id))}});
+    },
     getPublishedCatalog:()=>published,
     setPublishedCatalog(next,restoreText){
       const changed=JSON.stringify(published.portfolio)!==JSON.stringify(next.portfolio) || JSON.stringify(published.profile)!==JSON.stringify(next.profile);
@@ -1060,7 +1116,7 @@
   }
 
   if(typeof module==="object" && module.exports) {
-    module.exports={GROUPS,SUBS,normalizeArchive,featureWorkIndex,filterArchive,parseRoute,wrapIndex,mediaType,parseYouTube,briefText,internalPath,priceHash,makeArrivalMotion,mount};
+    module.exports={GROUPS,SUBS,normalizeArchive,featureWorkIndex,sameCardContent,filterArchive,parseRoute,wrapIndex,mediaType,parseYouTube,briefText,internalPath,priceHash,makeArrivalMotion,mount};
   } else {
     mount(window.BowoneQuote, window.createImageViewport);
   }
